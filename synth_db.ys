@@ -1,0 +1,7 @@
+read_verilog pe_double_buffered.v
+read_verilog systolic_array_2x2_db.v
+hierarchy -check -top systolic_array_2x2_db
+proc; opt; memory; opt; fsm; opt
+techmap; opt
+stat
+write_verilog systolic_db_netlist.v

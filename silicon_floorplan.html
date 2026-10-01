@@ -1,0 +1,238 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini-NPU ASIC Silicon Die Floorplan (SkyWater 130nm)</title>
+  <style>
+    :root {
+      --bg: #060911;
+      --panel: #0d1322;
+      --border: #1e293b;
+      --cyan: #38bdf8;
+      --emerald: #34d399;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --violet: #a78bfa;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px;
+    }
+    .header {
+      max-width: 1300px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 580px 1fr;
+      gap: 24px;
+    }
+    .canvas-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    canvas {
+      background: #020408;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.15);
+      cursor: crosshair;
+    }
+    .info-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .stat-box {
+      background: #080c14;
+      border: 1px solid #1a2234;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .stat-label { font-size: 11px; text-transform: uppercase; color: #94a3b8; }
+    .stat-val { font-size: 16px; font-weight: 700; font-family: var(--mono); margin-top: 4px; }
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .color-swatch { width: 14px; height: 14px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>ASIC Silicon Die Floorplan Visualizer <span>SkyWater 130nm Node</span></h2>
+    <div style="font-family:var(--mono); font-size:12px; color:var(--cyan);">Target Core: npu_top (2,526 Standard Cells)</div>
+  </div>
+
+  <div class="container">
+    <div class="canvas-card">
+      <canvas id="dieCanvas" width="520" height="520"></canvas>
+      <div style="font-size:11px; color:#94a3b8; margin-top:10px; font-family:var(--mono);">
+        Die Footprint: 200 μm × 200 μm | Core Area: 0.04 mm²
+      </div>
+    </div>
+
+    <div class="info-pane">
+      <div class="stat-card" style="border-top: 3px solid var(--cyan);">
+        <h3 style="font-size:14px; color:#fff;">Physical Implementation Metrics</h3>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="stat-label">Total Cell Count</div>
+            <div class="stat-val" style="color:var(--cyan);">2,526 Cells</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Clock Sinks (DFFs)</div>
+            <div class="stat-val" style="color:var(--emerald);">185 Flip-Flops</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Critical Path Delay</div>
+            <div class="stat-val" style="color:var(--amber);">2.645 ns (23 Lvl)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Silicon F_max</div>
+            <div class="stat-val" style="color:var(--emerald);">305.34 MHz</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="border-top: 3px solid var(--violet);">
+        <h3 style="font-size:14px; color:#fff;">Floorplan Partitioning & Silicon Allocation</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="color-swatch" style="background:#0284c7;"></div> PE00 Core MAC (21.4%)</div>
+          <div class="legend-item"><div class="color-swatch" style="background:#0369a1;"></div> PE01 Core MAC (21.4%)</div>
+          <div class="legend-item"><div class="color-swatch" style="background:#0e7490;"></div> PE10 Core MAC (21.4%)</div>
+          <div class="legend-item"><div class="color-swatch" style="background:#155e75;"></div> PE11 Core MAC (21.4%)</div>
+          <div class="legend-item"><div class="color-swatch" style="background:#a855f7;"></div> 6-State FSM Controller (4.2%)</div>
+          <div class="legend-item"><div class="color-swatch" style="background:#eab308;"></div> Row 1 Skew Buffer (3.1%)</div>
+          <div class="legend-item"><div class="color-swatch" style="background:#10b981;"></div> Requant & Saturation (6.7%)</div>
+          <div class="legend-item"><div class="color-swatch" style="background:#f43f5e;"></div> VDD/VSS Power Ring (I/O)</div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="font-size:12px; color:#cbd5e1; line-height:1.6;">
+        <h3 style="font-size:14px; color:#fff; margin-bottom:6px;">Placement Strategy</h3>
+        The four processing elements form a symmetrical $2 \times 2$ grid with direct vertical metal interconnects (`acc_00_to_10`, `acc_01_to_11`) routed on Metal 2. The central 6-state FSM controller orchestrates control strobes (`load_weight`, `swap_weights`) with balanced wire lengths to all four corner PEs, preventing clock and control skew.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const cvs = document.getElementById('dieCanvas');
+    const ctx = cvs.getContext('2d');
+
+    function drawFloorplan() {
+      ctx.clearRect(0, 0, 520, 520);
+
+      // Silicon Substrate
+      ctx.fillStyle = '#0b0f19';
+      ctx.fillRect(0, 0, 520, 520);
+
+      // Power Ring (VDD / VSS I/O Ring)
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(10, 10, 500, 500);
+
+      // Core Seal Ring
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(24, 24, 472, 472);
+
+      // Standard Cell Rows (Background Grid)
+      ctx.strokeStyle = '#111827';
+      ctx.lineWidth = 1;
+      for (let y = 30; y < 490; y += 8) {
+        ctx.beginPath();
+        ctx.moveTo(30, y);
+        ctx.lineTo(490, y);
+        ctx.stroke();
+      }
+
+      // Macro Blocks
+      drawBlock(40, 40, 190, 170, '#0284c7', 'PE[0][0]', '541 Cells | Multiplier + DFFs');
+      drawBlock(290, 40, 190, 170, '#0369a1', 'PE[0][1]', '541 Cells | Multiplier + DFFs');
+      drawBlock(40, 270, 190, 170, '#0e7490', 'PE[1][0]', '541 Cells | Multiplier + DFFs');
+      drawBlock(290, 270, 190, 170, '#155e75', 'PE[1][1]', '541 Cells | Multiplier + DFFs');
+
+      // Central Controller FSM
+      drawBlock(236, 170, 48, 140, '#9333ea', 'FSM', 'Controller');
+
+      // Input Skew Buffer
+      drawBlock(40, 220, 190, 36, '#ca8a04', 'ROW 1 SKEW DFFs', 'Delay Net');
+
+      // Output Requant Units
+      drawBlock(40, 452, 190, 30, '#059669', 'REQUANT COL 0', 'ReLU + Clamp');
+      drawBlock(290, 452, 190, 30, '#059669', 'REQUANT COL 1', 'ReLU + Clamp');
+
+      // Interconnect Wires
+      drawNet(135, 210, 135, 270, '#38bdf8'); // PE00 -> PE10
+      drawNet(385, 210, 385, 270, '#38bdf8'); // PE01 -> PE11
+      drawNet(135, 440, 135, 452, '#34d399'); // PE10 -> Requant 0
+      drawNet(385, 440, 385, 452, '#34d399'); // PE11 -> Requant 1
+    }
+
+    function drawBlock(x, y, w, h, color, title, subtitle) {
+      ctx.fillStyle = color + '22';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(title, x + w / 2, y + h / 2 - 2);
+
+      if (subtitle && h > 40) {
+        ctx.fillStyle = color;
+        ctx.font = '9px monospace';
+        ctx.fillText(subtitle, x + w / 2, y + h / 2 + 12);
+      }
+    }
+
+    function drawNet(x1, y1, x2, y2, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    drawFloorplan();
+  </script>
+</body>
+</html>

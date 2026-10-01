@@ -1,0 +1,5 @@
+read_verilog npu_top.v npu_core_2x2.v systolic_array_2x2_skewed.v systolic_array_2x2_db.v pe_double_buffered.v pe_weight_stationary.v systolic_controller.v requant_unit.v mac_int8.v
+hierarchy -check -top npu_top
+synth -top npu_top -flatten
+stat
+ltp

@@ -1,0 +1,12 @@
+read_verilog pe_double_buffered.v
+read_verilog systolic_array_2x2_db.v
+read_verilog systolic_array_2x2_skewed.v
+read_verilog systolic_controller.v
+read_verilog npu_core_2x2.v
+read_verilog requant_unit.v
+read_verilog npu_top.v
+hierarchy -check -top npu_top
+proc; opt; memory; opt; fsm; opt
+techmap; opt
+stat
+write_verilog npu_top_netlist.v

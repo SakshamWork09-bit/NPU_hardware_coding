@@ -1,0 +1,11 @@
+# Load and elaborate both modules
+read_verilog pe_weight_stationary.v
+read_verilog systolic_array_2x2.v
+hierarchy -check -top systolic_array_2x2
+proc; opt
+
+# Schematic 1: Top-Level 2x2 Grid (explicitly targeting systolic_array_2x2)
+show -format svg -prefix systolic_2x2_block -viewer none systolic_array_2x2
+
+# Schematic 2: Processing Element Internals (explicitly targeting pe_weight_stationary)
+show -format svg -prefix pe_micro_arch -viewer none pe_weight_stationary

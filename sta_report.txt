@@ -1,0 +1,1153 @@
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2024  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.39+149 (git sha1 b9d3bffda, x86_64-w64-mingw32-g++ 13.2.1 -Os)
+
+-- Executing script file `yosys_sta.ys' --
+
+1. Executing Verilog-2005 frontend: npu_top.v
+Parsing Verilog input from `npu_top.v' to AST representation.
+Generating RTLIL representation for module `\npu_top'.
+Successfully finished Verilog frontend.
+
+2. Executing Verilog-2005 frontend: npu_core_2x2.v
+Parsing Verilog input from `npu_core_2x2.v' to AST representation.
+Generating RTLIL representation for module `\npu_core_2x2'.
+Successfully finished Verilog frontend.
+
+3. Executing Verilog-2005 frontend: systolic_array_2x2_skewed.v
+Parsing Verilog input from `systolic_array_2x2_skewed.v' to AST representation.
+Generating RTLIL representation for module `\systolic_array_2x2_skewed'.
+Successfully finished Verilog frontend.
+
+4. Executing Verilog-2005 frontend: systolic_array_2x2_db.v
+Parsing Verilog input from `systolic_array_2x2_db.v' to AST representation.
+Generating RTLIL representation for module `\systolic_array_2x2_db'.
+Successfully finished Verilog frontend.
+
+5. Executing Verilog-2005 frontend: pe_double_buffered.v
+Parsing Verilog input from `pe_double_buffered.v' to AST representation.
+Generating RTLIL representation for module `\pe_double_buffered'.
+Successfully finished Verilog frontend.
+
+6. Executing Verilog-2005 frontend: pe_weight_stationary.v
+Parsing Verilog input from `pe_weight_stationary.v' to AST representation.
+Generating RTLIL representation for module `\pe_weight_stationary'.
+Successfully finished Verilog frontend.
+
+7. Executing Verilog-2005 frontend: systolic_controller.v
+Parsing Verilog input from `systolic_controller.v' to AST representation.
+Generating RTLIL representation for module `\systolic_controller'.
+Successfully finished Verilog frontend.
+
+8. Executing Verilog-2005 frontend: requant_unit.v
+Parsing Verilog input from `requant_unit.v' to AST representation.
+Generating RTLIL representation for module `\requant_unit'.
+Successfully finished Verilog frontend.
+
+9. Executing Verilog-2005 frontend: mac_int8.v
+Parsing Verilog input from `mac_int8.v' to AST representation.
+Generating RTLIL representation for module `\mac_int8'.
+Successfully finished Verilog frontend.
+
+10. Executing HIERARCHY pass (managing design hierarchy).
+
+10.1. Analyzing design hierarchy..
+Top module:  \npu_top
+Used module:     \requant_unit
+Used module:     \npu_core_2x2
+Used module:         \systolic_array_2x2_skewed
+Used module:             \systolic_array_2x2_db
+Used module:                 \pe_double_buffered
+Used module:         \systolic_controller
+Parameter \SHIFT_BITS = 1
+
+10.2. Executing AST frontend in derive mode using pre-parsed AST for module `\requant_unit'.
+Parameter \SHIFT_BITS = 1
+Generating RTLIL representation for module `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001'.
+Parameter \SHIFT_BITS = 1
+Found cached RTLIL representation for module `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001'.
+
+10.3. Analyzing design hierarchy..
+Top module:  \npu_top
+Used module:     $paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001
+Used module:     \npu_core_2x2
+Used module:         \systolic_array_2x2_skewed
+Used module:             \systolic_array_2x2_db
+Used module:                 \pe_double_buffered
+Used module:         \systolic_controller
+
+10.4. Analyzing design hierarchy..
+Top module:  \npu_top
+Used module:     $paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001
+Used module:     \npu_core_2x2
+Used module:         \systolic_array_2x2_skewed
+Used module:             \systolic_array_2x2_db
+Used module:                 \pe_double_buffered
+Used module:         \systolic_controller
+Removing unused module `\mac_int8'.
+Removing unused module `\requant_unit'.
+Removing unused module `\pe_weight_stationary'.
+Removed 3 unused modules.
+
+11. Executing SYNTH pass.
+
+11.1. Executing HIERARCHY pass (managing design hierarchy).
+
+11.1.1. Analyzing design hierarchy..
+Top module:  \npu_top
+Used module:     $paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001
+Used module:     \npu_core_2x2
+Used module:         \systolic_array_2x2_skewed
+Used module:             \systolic_array_2x2_db
+Used module:                 \pe_double_buffered
+Used module:         \systolic_controller
+
+11.1.2. Analyzing design hierarchy..
+Top module:  \npu_top
+Used module:     $paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001
+Used module:     \npu_core_2x2
+Used module:         \systolic_array_2x2_skewed
+Used module:             \systolic_array_2x2_db
+Used module:                 \pe_double_buffered
+Used module:         \systolic_controller
+Removed 0 unused modules.
+
+11.2. Executing PROC pass (convert processes to netlists).
+
+11.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+11.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 1 switch rules as full_case in process $proc$systolic_controller.v:63$26 in module systolic_controller.
+Marked 4 switch rules as full_case in process $proc$systolic_controller.v:49$23 in module systolic_controller.
+Marked 3 switch rules as full_case in process $proc$systolic_controller.v:28$17 in module systolic_controller.
+Marked 3 switch rules as full_case in process $proc$requant_unit.v:24$40 in module $paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.
+Marked 2 switch rules as full_case in process $proc$pe_double_buffered.v:25$9 in module pe_double_buffered.
+Marked 1 switch rules as full_case in process $proc$systolic_array_2x2_skewed.v:40$5 in module systolic_array_2x2_skewed.
+Removed a total of 0 dead cases.
+
+11.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 8 redundant assignments.
+Promoted 6 assignments to connections.
+
+11.2.4. Executing PROC_INIT pass (extract init attributes).
+
+11.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+11.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~16 debug messages>
+
+11.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\systolic_controller.$proc$systolic_controller.v:63$26'.
+     1/5: $1\busy[0:0]
+     2/5: $1\matrix_valid_in[0:0]
+     3/5: $1\swap_weights[0:0]
+     4/5: $1\load_weight[0:0]
+     5/5: $1\done[0:0]
+Creating decoders for process `\systolic_controller.$proc$systolic_controller.v:49$23'.
+     1/4: $4\next_state[2:0]
+     2/4: $3\next_state[2:0]
+     3/4: $2\next_state[2:0]
+     4/4: $1\next_state[2:0]
+Creating decoders for process `\systolic_controller.$proc$systolic_controller.v:28$17'.
+     1/3: $0\drain_cnt[2:0]
+     2/3: $0\stream_idx[1:0]
+     3/3: $0\state[2:0]
+Creating decoders for process `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.$proc$requant_unit.v:24$40'.
+     1/2: $0\valid_out[0:0]
+     2/2: $0\data_out[7:0]
+Creating decoders for process `\pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+     1/5: $0\valid_out[0:0]
+     2/5: $0\active_weight[7:0]
+     3/5: $0\shadow_weight[7:0]
+     4/5: $0\acc_out[31:0]
+     5/5: $0\a_out[7:0]
+Creating decoders for process `\systolic_array_2x2_skewed.$proc$systolic_array_2x2_skewed.v:40$5'.
+     1/2: $0\valid_row1_skewed[0:0]
+     2/2: $0\a_row1_skewed[7:0]
+
+11.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\systolic_controller.\busy' from process `\systolic_controller.$proc$systolic_controller.v:63$26'.
+No latch inferred for signal `\systolic_controller.\done' from process `\systolic_controller.$proc$systolic_controller.v:63$26'.
+No latch inferred for signal `\systolic_controller.\load_weight' from process `\systolic_controller.$proc$systolic_controller.v:63$26'.
+No latch inferred for signal `\systolic_controller.\swap_weights' from process `\systolic_controller.$proc$systolic_controller.v:63$26'.
+No latch inferred for signal `\systolic_controller.\matrix_valid_in' from process `\systolic_controller.$proc$systolic_controller.v:63$26'.
+No latch inferred for signal `\systolic_controller.\next_state' from process `\systolic_controller.$proc$systolic_controller.v:49$23'.
+
+11.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\systolic_controller.\stream_idx' using process `\systolic_controller.$proc$systolic_controller.v:28$17'.
+  created $dff cell `$procdff$163' with positive edge clock.
+Creating register for signal `\systolic_controller.\state' using process `\systolic_controller.$proc$systolic_controller.v:28$17'.
+  created $dff cell `$procdff$164' with positive edge clock.
+Creating register for signal `\systolic_controller.\drain_cnt' using process `\systolic_controller.$proc$systolic_controller.v:28$17'.
+  created $dff cell `$procdff$165' with positive edge clock.
+Creating register for signal `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.\valid_out' using process `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.$proc$requant_unit.v:24$40'.
+  created $dff cell `$procdff$166' with positive edge clock.
+Creating register for signal `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.\data_out' using process `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.$proc$requant_unit.v:24$40'.
+  created $dff cell `$procdff$167' with positive edge clock.
+Creating register for signal `\pe_double_buffered.\valid_out' using process `\pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+  created $dff cell `$procdff$168' with positive edge clock.
+Creating register for signal `\pe_double_buffered.\a_out' using process `\pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+  created $dff cell `$procdff$169' with positive edge clock.
+Creating register for signal `\pe_double_buffered.\acc_out' using process `\pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+  created $dff cell `$procdff$170' with positive edge clock.
+Creating register for signal `\pe_double_buffered.\shadow_weight' using process `\pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+  created $dff cell `$procdff$171' with positive edge clock.
+Creating register for signal `\pe_double_buffered.\active_weight' using process `\pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+  created $dff cell `$procdff$172' with positive edge clock.
+Creating register for signal `\systolic_array_2x2_skewed.\a_row1_skewed' using process `\systolic_array_2x2_skewed.$proc$systolic_array_2x2_skewed.v:40$5'.
+  created $dff cell `$procdff$173' with positive edge clock.
+Creating register for signal `\systolic_array_2x2_skewed.\valid_row1_skewed' using process `\systolic_array_2x2_skewed.$proc$systolic_array_2x2_skewed.v:40$5'.
+  created $dff cell `$procdff$174' with positive edge clock.
+
+11.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+11.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\systolic_controller.$proc$systolic_controller.v:63$26'.
+Removing empty process `systolic_controller.$proc$systolic_controller.v:63$26'.
+Found and cleaned up 4 empty switches in `\systolic_controller.$proc$systolic_controller.v:49$23'.
+Removing empty process `systolic_controller.$proc$systolic_controller.v:49$23'.
+Found and cleaned up 3 empty switches in `\systolic_controller.$proc$systolic_controller.v:28$17'.
+Removing empty process `systolic_controller.$proc$systolic_controller.v:28$17'.
+Found and cleaned up 3 empty switches in `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.$proc$requant_unit.v:24$40'.
+Removing empty process `$paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.$proc$requant_unit.v:24$40'.
+Found and cleaned up 4 empty switches in `\pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+Removing empty process `pe_double_buffered.$proc$pe_double_buffered.v:25$9'.
+Found and cleaned up 1 empty switch in `\systolic_array_2x2_skewed.$proc$systolic_array_2x2_skewed.v:40$5'.
+Removing empty process `systolic_array_2x2_skewed.$proc$systolic_array_2x2_skewed.v:40$5'.
+Cleaned up 16 empty switches.
+
+11.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module systolic_controller.
+<suppressed ~6 debug messages>
+Optimizing module $paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.
+<suppressed ~3 debug messages>
+Optimizing module pe_double_buffered.
+<suppressed ~5 debug messages>
+Optimizing module systolic_array_2x2_db.
+Optimizing module systolic_array_2x2_skewed.
+<suppressed ~2 debug messages>
+Optimizing module npu_core_2x2.
+<suppressed ~2 debug messages>
+Optimizing module npu_top.
+
+11.3. Executing FLATTEN pass (flatten design).
+Deleting now unused module systolic_controller.
+Deleting now unused module $paramod\requant_unit\SHIFT_BITS=s32'00000000000000000000000000000001.
+Deleting now unused module pe_double_buffered.
+Deleting now unused module systolic_array_2x2_db.
+Deleting now unused module systolic_array_2x2_skewed.
+Deleting now unused module npu_core_2x2.
+<suppressed ~10 debug messages>
+
+11.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+<suppressed ~2 debug messages>
+
+11.5. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 17 unused cells and 135 unused wires.
+<suppressed ~23 debug messages>
+
+11.6. Executing CHECK pass (checking for obvious problems).
+Checking module npu_top...
+Found and reported 0 problems.
+
+11.7. Executing OPT pass (performing simple optimizations).
+
+11.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+<suppressed ~33 debug messages>
+Removed a total of 11 cells.
+
+11.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $flatten\core.\ctrl.$procmux$73.
+    dead port 2/2 on $mux $flatten\core.\ctrl.$procmux$81.
+    dead port 2/2 on $mux $flatten\core.\ctrl.$procmux$92.
+Removed 3 multiplexer ports.
+<suppressed ~34 debug messages>
+
+11.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+    New ctrl vector for $pmux cell $flatten\core.\ctrl.$procmux$44: $auto$opt_reduce.cc:134:opt_pmux$186
+  Optimizing cells in module \npu_top.
+Performed a total of 1 changes.
+
+11.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.7.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.7.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 0 unused cells and 14 unused wires.
+<suppressed ~1 debug messages>
+
+11.7.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.7.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+11.7.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~34 debug messages>
+
+11.7.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+Performed a total of 0 changes.
+
+11.7.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.7.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.7.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+
+11.7.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.7.16. Finished OPT passes. (There is nothing left to do.)
+
+11.8. Executing FSM pass (extract and optimize FSM).
+
+11.8.1. Executing FSM_DETECT pass (finding FSMs in design).
+Found FSM state register npu_top.core.ctrl.state.
+
+11.8.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+Extracting FSM `\core.ctrl.state' from module `\npu_top'.
+  found $dff cell for state register: $flatten\core.\ctrl.$procdff$164
+  root of input selection tree: $flatten\core.\ctrl.$0\state[2:0]
+  found reset state: 3'000 (guessed from mux tree)
+  found ctrl input: \rst_n
+  found state code: 3'000
+  found ctrl input: $flatten\core.\ctrl.$eq$systolic_controller.v:41$21_Y
+  found ctrl input: $flatten\core.\ctrl.$eq$systolic_controller.v:36$19_Y
+  found ctrl input: $flatten\core.\ctrl.$procmux$57_CMP
+  found ctrl input: $flatten\core.\ctrl.$procmux$100_CMP
+  found ctrl input: $flatten\core.\ctrl.$procmux$101_CMP
+  found ctrl input: $flatten\core.\ctrl.$eq$systolic_controller.v:56$25_Y
+  found state code: 3'101
+  found ctrl input: $flatten\core.\ctrl.$eq$systolic_controller.v:55$24_Y
+  found state code: 3'100
+  found state code: 3'011
+  found state code: 3'010
+  found ctrl input: \start
+  found state code: 3'001
+  found ctrl output: $flatten\core.\ctrl.$eq$systolic_controller.v:36$19_Y
+  found ctrl output: $flatten\core.\ctrl.$eq$systolic_controller.v:41$21_Y
+  found ctrl output: $flatten\core.\ctrl.$procmux$45_CMP
+  found ctrl output: $flatten\core.\ctrl.$procmux$57_CMP
+  found ctrl output: $flatten\core.\ctrl.$procmux$100_CMP
+  found ctrl output: $flatten\core.\ctrl.$procmux$101_CMP
+  ctrl inputs: { $flatten\core.\ctrl.$eq$systolic_controller.v:56$25_Y $flatten\core.\ctrl.$eq$systolic_controller.v:55$24_Y \start \rst_n }
+  ctrl outputs: { $flatten\core.\ctrl.$procmux$101_CMP $flatten\core.\ctrl.$procmux$100_CMP $flatten\core.\ctrl.$procmux$57_CMP $flatten\core.\ctrl.$procmux$45_CMP $flatten\core.\ctrl.$eq$systolic_controller.v:41$21_Y $flatten\core.\ctrl.$eq$systolic_controller.v:36$19_Y $flatten\core.\ctrl.$0\state[2:0] }
+  transition:      3'000 4'---0 ->      3'000 9'100000000
+  transition:      3'000 4'--01 ->      3'000 9'100000000
+  transition:      3'000 4'--11 ->      3'001 9'100000001
+  transition:      3'100 4'---0 ->      3'000 9'000010000
+  transition:      3'100 4'0--1 ->      3'100 9'000010100
+  transition:      3'100 4'1--1 ->      3'101 9'000010101
+  transition:      3'010 4'---0 ->      3'000 9'001000000
+  transition:      3'010 4'---1 ->      3'011 9'001000011
+  transition:      3'001 4'---0 ->      3'000 9'010000000
+  transition:      3'001 4'---1 ->      3'010 9'010000010
+  transition:      3'101 4'---0 ->      3'000 9'000100000
+  transition:      3'101 4'---1 ->      3'000 9'000100000
+  transition:      3'011 4'---0 ->      3'000 9'000001000
+  transition:      3'011 4'-0-1 ->      3'011 9'000001011
+  transition:      3'011 4'-1-1 ->      3'100 9'000001100
+
+11.8.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+Optimizing FSM `$fsm$\core.ctrl.state$187' from module `\npu_top'.
+  Merging pattern 4'---0 and 4'---1 from group (4 0 9'000100000).
+  Merging pattern 4'---1 and 4'---0 from group (4 0 9'000100000).
+
+11.8.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 12 unused cells and 12 unused wires.
+<suppressed ~14 debug messages>
+
+11.8.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+Optimizing FSM `$fsm$\core.ctrl.state$187' from module `\npu_top'.
+  Removing unused output signal $flatten\core.\ctrl.$0\state[2:0] [0].
+  Removing unused output signal $flatten\core.\ctrl.$0\state[2:0] [1].
+  Removing unused output signal $flatten\core.\ctrl.$0\state[2:0] [2].
+
+11.8.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+Recoding FSM `$fsm$\core.ctrl.state$187' from module `\npu_top' using `auto' encoding:
+  mapping auto encoding to `one-hot` for this FSM.
+  000 -> -----1
+  100 -> ----1-
+  010 -> ---1--
+  001 -> --1---
+  101 -> -1----
+  011 -> 1-----
+
+11.8.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+FSM `$fsm$\core.ctrl.state$187' from module `npu_top':
+-------------------------------------
+
+  Information on FSM $fsm$\core.ctrl.state$187 (\core.ctrl.state):
+
+  Number of input signals:    4
+  Number of output signals:   6
+  Number of state bits:       6
+
+  Input signals:
+    0: \rst_n
+    1: \start
+    2: $flatten\core.\ctrl.$eq$systolic_controller.v:55$24_Y
+    3: $flatten\core.\ctrl.$eq$systolic_controller.v:56$25_Y
+
+  Output signals:
+    0: $flatten\core.\ctrl.$eq$systolic_controller.v:36$19_Y
+    1: $flatten\core.\ctrl.$eq$systolic_controller.v:41$21_Y
+    2: $flatten\core.\ctrl.$procmux$45_CMP
+    3: $flatten\core.\ctrl.$procmux$57_CMP
+    4: $flatten\core.\ctrl.$procmux$100_CMP
+    5: $flatten\core.\ctrl.$procmux$101_CMP
+
+  State encoding:
+    0:   6'-----1  <RESET STATE>
+    1:   6'----1-
+    2:   6'---1--
+    3:   6'--1---
+    4:   6'-1----
+    5:   6'1-----
+
+  Transition Table (state_in, ctrl_in, state_out, ctrl_out):
+      0:     0 4'---0   ->     0 6'100000
+      1:     0 4'--01   ->     0 6'100000
+      2:     0 4'--11   ->     3 6'100000
+      3:     1 4'---0   ->     0 6'000010
+      4:     1 4'0--1   ->     1 6'000010
+      5:     1 4'1--1   ->     4 6'000010
+      6:     2 4'---0   ->     0 6'001000
+      7:     2 4'---1   ->     5 6'001000
+      8:     3 4'---0   ->     0 6'010000
+      9:     3 4'---1   ->     2 6'010000
+     10:     4 4'----   ->     0 6'000100
+     11:     5 4'---0   ->     0 6'000001
+     12:     5 4'-1-1   ->     1 6'000001
+     13:     5 4'-0-1   ->     5 6'000001
+
+-------------------------------------
+
+11.8.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+Mapping FSM `$fsm$\core.ctrl.state$187' from module `\npu_top'.
+
+11.9. Executing OPT pass (performing simple optimizations).
+
+11.9.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+<suppressed ~3 debug messages>
+
+11.9.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.9.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~33 debug messages>
+
+11.9.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+Performed a total of 0 changes.
+
+11.9.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.9.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding SRST signal on $flatten\post1.$procdff$167 ($dff) from module npu_top (D = $flatten\post1.$procmux$122_Y [6:0], Q = \post1.data_out [6:0], rval = 7'0000000).
+Adding SRST signal on $flatten\post1.$procdff$167 ($dff) from module npu_top (D = \post1.relu_val [8], Q = \post1.data_out [7], rval = 1'0).
+Adding SRST signal on $flatten\post1.$procdff$166 ($dff) from module npu_top (D = \core.array_subsystem.array_core.pe11.valid_out, Q = \post1.valid_out, rval = 1'0).
+Adding SRST signal on $flatten\post0.$procdff$167 ($dff) from module npu_top (D = $flatten\post0.$procmux$122_Y [6:0], Q = \post0.data_out [6:0], rval = 7'0000000).
+Adding SRST signal on $flatten\post0.$procdff$167 ($dff) from module npu_top (D = \post0.relu_val [8], Q = \post0.data_out [7], rval = 1'0).
+Adding SRST signal on $flatten\post0.$procdff$166 ($dff) from module npu_top (D = \core.array_subsystem.array_core.pe10.valid_out, Q = \post0.valid_out, rval = 1'0).
+Adding SRST signal on $flatten\core.\ctrl.$procdff$165 ($dff) from module npu_top (D = $flatten\core.\ctrl.$add$systolic_controller.v:42$22_Y, Q = \core.ctrl.drain_cnt, rval = 3'000).
+Adding SRST signal on $flatten\core.\ctrl.$procdff$163 ($dff) from module npu_top (D = $flatten\core.\ctrl.$add$systolic_controller.v:37$20_Y, Q = \core.ctrl.stream_idx, rval = 2'00).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe11.$procdff$172 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe11.$procmux$135_Y, Q = \core.array_subsystem.array_core.pe11.active_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$264 ($sdff) from module npu_top (D = \core.array_subsystem.array_core.pe11.shadow_weight, Q = \core.array_subsystem.array_core.pe11.active_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe11.$procdff$171 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe11.$procmux$140_Y, Q = \core.array_subsystem.array_core.pe11.shadow_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$266 ($sdff) from module npu_top (D = \w11, Q = \core.array_subsystem.array_core.pe11.shadow_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe11.$procdff$170 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe11.$procmux$146_Y, Q = \core.array_subsystem.array_core.pe11.acc_out, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$268 ($sdff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe11.$add$pe_double_buffered.v:46$12_Y, Q = \core.array_subsystem.array_core.pe11.acc_out).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe11.$procdff$168 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe11.$procmux$130_Y, Q = \core.array_subsystem.array_core.pe11.valid_out, rval = 1'0).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe10.$procdff$172 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe10.$procmux$135_Y, Q = \core.array_subsystem.array_core.pe10.active_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$271 ($sdff) from module npu_top (D = \core.array_subsystem.array_core.pe10.shadow_weight, Q = \core.array_subsystem.array_core.pe10.active_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe10.$procdff$171 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe10.$procmux$140_Y, Q = \core.array_subsystem.array_core.pe10.shadow_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$273 ($sdff) from module npu_top (D = \w10, Q = \core.array_subsystem.array_core.pe10.shadow_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe10.$procdff$170 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe10.$procmux$146_Y, Q = \core.array_subsystem.array_core.pe10.acc_out, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$275 ($sdff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe10.$add$pe_double_buffered.v:46$12_Y, Q = \core.array_subsystem.array_core.pe10.acc_out).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe10.$procdff$169 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe10.$procmux$152_Y, Q = \core.array_subsystem.array_core.pe10.a_out, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$277 ($sdff) from module npu_top (D = \core.array_subsystem.a_row1_skewed, Q = \core.array_subsystem.array_core.pe10.a_out).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe10.$procdff$168 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe10.$procmux$130_Y, Q = \core.array_subsystem.array_core.pe10.valid_out, rval = 1'0).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe01.$procdff$172 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe01.$procmux$135_Y, Q = \core.array_subsystem.array_core.pe01.active_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$280 ($sdff) from module npu_top (D = \core.array_subsystem.array_core.pe01.shadow_weight, Q = \core.array_subsystem.array_core.pe01.active_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe01.$procdff$171 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe01.$procmux$140_Y, Q = \core.array_subsystem.array_core.pe01.shadow_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$282 ($sdff) from module npu_top (D = \w01, Q = \core.array_subsystem.array_core.pe01.shadow_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe01.$procdff$170 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe01.$procmux$146_Y, Q = \core.array_subsystem.array_core.pe01.acc_out, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$284 ($sdff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe01.$add$pe_double_buffered.v:46$12_Y, Q = \core.array_subsystem.array_core.pe01.acc_out).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe00.$procdff$172 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe00.$procmux$135_Y, Q = \core.array_subsystem.array_core.pe00.active_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$286 ($sdff) from module npu_top (D = \core.array_subsystem.array_core.pe00.shadow_weight, Q = \core.array_subsystem.array_core.pe00.active_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe00.$procdff$171 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe00.$procmux$140_Y, Q = \core.array_subsystem.array_core.pe00.shadow_weight, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$288 ($sdff) from module npu_top (D = \w00, Q = \core.array_subsystem.array_core.pe00.shadow_weight).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe00.$procdff$170 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe00.$procmux$146_Y, Q = \core.array_subsystem.array_core.pe00.acc_out, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$290 ($sdff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe00.$add$pe_double_buffered.v:46$12_Y, Q = \core.array_subsystem.array_core.pe00.acc_out).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe00.$procdff$169 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe00.$procmux$152_Y, Q = \core.array_subsystem.array_core.pe00.a_out, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$292 ($sdff) from module npu_top (D = \core.array_subsystem.array_core.pe00.a_in, Q = \core.array_subsystem.array_core.pe00.a_out).
+Adding SRST signal on $flatten\core.\array_subsystem.\array_core.\pe00.$procdff$168 ($dff) from module npu_top (D = $flatten\core.\array_subsystem.\array_core.\pe00.$procmux$130_Y, Q = \core.array_subsystem.array_core.pe00.valid_out, rval = 1'0).
+Adding SRST signal on $flatten\core.\array_subsystem.$procdff$174 ($dff) from module npu_top (D = \core.array_subsystem.matrix_valid_in, Q = \core.array_subsystem.valid_row1_skewed, rval = 1'0).
+Adding SRST signal on $flatten\core.\array_subsystem.$procdff$173 ($dff) from module npu_top (D = \core.array_subsystem.row1_data_in, Q = \core.array_subsystem.a_row1_skewed, rval = 8'00000000).
+
+11.9.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 43 unused cells and 54 unused wires.
+<suppressed ~44 debug messages>
+
+11.9.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.9.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+11.9.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~14 debug messages>
+
+11.9.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+Performed a total of 0 changes.
+
+11.9.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+<suppressed ~6 debug messages>
+Removed a total of 2 cells.
+
+11.9.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.9.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 0 unused cells and 2 unused wires.
+<suppressed ~1 debug messages>
+
+11.9.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.9.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+11.9.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~14 debug messages>
+
+11.9.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+Performed a total of 0 changes.
+
+11.9.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.9.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.9.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+
+11.9.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.9.23. Finished OPT passes. (There is nothing left to do.)
+
+11.10. Executing WREDUCE pass (reducing word size of cells).
+Removed top 1 bits (of 2) from port B of cell npu_top.$auto$fsm_map.cc:77:implement_pattern_cache$202 ($eq).
+Removed top 16 bits (of 32) from port Y of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe11.$mul$pe_double_buffered.v:46$11 ($mul).
+Removed top 16 bits (of 32) from port B of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe11.$add$pe_double_buffered.v:46$12 ($add).
+Removed top 16 bits (of 32) from port Y of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe10.$mul$pe_double_buffered.v:46$11 ($mul).
+Removed top 16 bits (of 32) from port B of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe10.$add$pe_double_buffered.v:46$12 ($add).
+Removed top 16 bits (of 32) from port Y of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe01.$mul$pe_double_buffered.v:46$11 ($mul).
+Removed top 16 bits (of 32) from FF cell npu_top.$auto$ff.cc:266:slice$285 ($sdffe).
+Removed top 16 bits (of 32) from port Y of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe00.$mul$pe_double_buffered.v:46$11 ($mul).
+Removed top 16 bits (of 32) from FF cell npu_top.$auto$ff.cc:266:slice$291 ($sdffe).
+Removed top 1 bits (of 2) from port B of cell npu_top.$flatten\core.\ctrl.$eq$systolic_controller.v:55$24 ($eq).
+Removed top 1 bits (of 3) from port B of cell npu_top.$flatten\core.\ctrl.$eq$systolic_controller.v:56$25 ($eq).
+Removed top 1 bits (of 2) from port B of cell npu_top.$auto$fsm_map.cc:77:implement_pattern_cache$211 ($eq).
+Removed top 1 bits (of 2) from port B of cell npu_top.$auto$fsm_map.cc:77:implement_pattern_cache$228 ($eq).
+Removed top 1 bits (of 8) from mux cell npu_top.$flatten\post0.$procmux$122 ($mux).
+Removed top 1 bits (of 32) from port A of cell npu_top.$flatten\post0.$gt$requant_unit.v:31$42 ($gt).
+Removed top 24 bits (of 32) from port B of cell npu_top.$flatten\post0.$gt$requant_unit.v:31$42 ($gt).
+Removed top 31 bits (of 32) from port B of cell npu_top.$flatten\post0.$gt$requant_unit.v:18$37 ($gt).
+Removed top 1 bits (of 8) from mux cell npu_top.$flatten\post1.$procmux$122 ($mux).
+Removed top 1 bits (of 32) from port A of cell npu_top.$flatten\post1.$gt$requant_unit.v:31$42 ($gt).
+Removed top 24 bits (of 32) from port B of cell npu_top.$flatten\post1.$gt$requant_unit.v:31$42 ($gt).
+Removed top 31 bits (of 32) from port B of cell npu_top.$flatten\post1.$gt$requant_unit.v:18$37 ($gt).
+Removed top 16 bits (of 32) from port A of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe11.$add$pe_double_buffered.v:46$12 ($add).
+Removed top 15 bits (of 32) from port Y of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe11.$add$pe_double_buffered.v:46$12 ($add).
+Removed top 16 bits (of 32) from port A of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe10.$add$pe_double_buffered.v:46$12 ($add).
+Removed top 15 bits (of 32) from port Y of cell npu_top.$flatten\core.\array_subsystem.\array_core.\pe10.$add$pe_double_buffered.v:46$12 ($add).
+Removed top 1 bits (of 8) from wire npu_top.$flatten\post0.$procmux$122_Y.
+Removed top 1 bits (of 8) from wire npu_top.$flatten\post1.$procmux$122_Y.
+
+11.11. Executing PEEPOPT pass (run peephole optimizers).
+
+11.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 0 unused cells and 2 unused wires.
+<suppressed ~1 debug messages>
+
+11.13. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module npu_top:
+  creating $macc model for $flatten\core.\array_subsystem.\array_core.\pe00.$mul$pe_double_buffered.v:46$11 ($mul).
+  creating $macc model for $flatten\core.\array_subsystem.\array_core.\pe01.$mul$pe_double_buffered.v:46$11 ($mul).
+  creating $macc model for $flatten\core.\array_subsystem.\array_core.\pe10.$add$pe_double_buffered.v:46$12 ($add).
+  creating $macc model for $flatten\core.\array_subsystem.\array_core.\pe10.$mul$pe_double_buffered.v:46$11 ($mul).
+  creating $macc model for $flatten\core.\array_subsystem.\array_core.\pe11.$add$pe_double_buffered.v:46$12 ($add).
+  creating $macc model for $flatten\core.\array_subsystem.\array_core.\pe11.$mul$pe_double_buffered.v:46$11 ($mul).
+  creating $macc model for $flatten\core.\ctrl.$add$systolic_controller.v:37$20 ($add).
+  creating $macc model for $flatten\core.\ctrl.$add$systolic_controller.v:42$22 ($add).
+  merging $macc model for $flatten\core.\array_subsystem.\array_core.\pe11.$mul$pe_double_buffered.v:46$11 into $flatten\core.\array_subsystem.\array_core.\pe11.$add$pe_double_buffered.v:46$12.
+  merging $macc model for $flatten\core.\array_subsystem.\array_core.\pe10.$mul$pe_double_buffered.v:46$11 into $flatten\core.\array_subsystem.\array_core.\pe10.$add$pe_double_buffered.v:46$12.
+  creating $alu model for $macc $flatten\core.\ctrl.$add$systolic_controller.v:37$20.
+  creating $alu model for $macc $flatten\core.\ctrl.$add$systolic_controller.v:42$22.
+  creating $macc cell for $flatten\core.\array_subsystem.\array_core.\pe11.$add$pe_double_buffered.v:46$12: $auto$alumacc.cc:365:replace_macc$299
+  creating $macc cell for $flatten\core.\array_subsystem.\array_core.\pe10.$add$pe_double_buffered.v:46$12: $auto$alumacc.cc:365:replace_macc$300
+  creating $macc cell for $flatten\core.\array_subsystem.\array_core.\pe01.$mul$pe_double_buffered.v:46$11: $auto$alumacc.cc:365:replace_macc$301
+  creating $macc cell for $flatten\core.\array_subsystem.\array_core.\pe00.$mul$pe_double_buffered.v:46$11: $auto$alumacc.cc:365:replace_macc$302
+  creating $alu model for $flatten\post0.$gt$requant_unit.v:18$37 ($gt): new $alu
+  creating $alu model for $flatten\post0.$gt$requant_unit.v:31$42 ($gt): new $alu
+  creating $alu model for $flatten\post1.$gt$requant_unit.v:18$37 ($gt): new $alu
+  creating $alu model for $flatten\post1.$gt$requant_unit.v:31$42 ($gt): new $alu
+  creating $alu cell for $flatten\post1.$gt$requant_unit.v:31$42: $auto$alumacc.cc:485:replace_alu$307
+  creating $alu cell for $flatten\post1.$gt$requant_unit.v:18$37: $auto$alumacc.cc:485:replace_alu$314
+  creating $alu cell for $flatten\post0.$gt$requant_unit.v:31$42: $auto$alumacc.cc:485:replace_alu$321
+  creating $alu cell for $flatten\post0.$gt$requant_unit.v:18$37: $auto$alumacc.cc:485:replace_alu$328
+  creating $alu cell for $flatten\core.\ctrl.$add$systolic_controller.v:42$22: $auto$alumacc.cc:485:replace_alu$335
+  creating $alu cell for $flatten\core.\ctrl.$add$systolic_controller.v:37$20: $auto$alumacc.cc:485:replace_alu$338
+  created 6 $alu and 4 $macc cells.
+
+11.14. Executing SHARE pass (SAT-based resource sharing).
+Found 2 cells in module npu_top that may be considered for resource sharing.
+  Analyzing resource sharing options for $flatten\core.\array_subsystem.\array_core.\pe11.$mul$pe_double_buffered.v:46$11 ($mul):
+    Found cell that is never activated: $flatten\core.\array_subsystem.\array_core.\pe11.$mul$pe_double_buffered.v:46$11
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $flatten\core.\array_subsystem.\array_core.\pe10.$mul$pe_double_buffered.v:46$11 ($mul):
+    Found cell that is never activated: $flatten\core.\array_subsystem.\array_core.\pe10.$mul$pe_double_buffered.v:46$11
+    Cell is never active. Sharing is pointless, we simply remove it.
+Removing 2 cells in module npu_top:
+  Removing cell $flatten\core.\array_subsystem.\array_core.\pe10.$mul$pe_double_buffered.v:46$11 ($mul).
+  Removing cell $flatten\core.\array_subsystem.\array_core.\pe11.$mul$pe_double_buffered.v:46$11 ($mul).
+
+11.15. Executing OPT pass (performing simple optimizations).
+
+11.15.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.15.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.15.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~14 debug messages>
+
+11.15.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+Performed a total of 0 changes.
+
+11.15.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.15.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.15.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 0 unused cells and 6 unused wires.
+<suppressed ~1 debug messages>
+
+11.15.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.15.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+11.15.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~14 debug messages>
+
+11.15.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+Performed a total of 0 changes.
+
+11.15.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.15.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.15.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+
+11.15.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.15.16. Finished OPT passes. (There is nothing left to do.)
+
+11.16. Executing MEMORY pass.
+
+11.16.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+11.16.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+11.16.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+11.16.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+11.16.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+11.16.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+
+11.16.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+11.16.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+11.16.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+
+11.16.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+11.17. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+
+11.18. Executing OPT pass (performing simple optimizations).
+
+11.18.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+<suppressed ~10 debug messages>
+
+11.18.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+<suppressed ~6 debug messages>
+Removed a total of 2 cells.
+
+11.18.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.18.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 14 unused cells and 17 unused wires.
+<suppressed ~15 debug messages>
+
+11.18.5. Finished fast OPT passes.
+
+11.19. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+11.20. Executing OPT pass (performing simple optimizations).
+
+11.20.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.20.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.20.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \npu_top..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~6 debug messages>
+
+11.20.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \npu_top.
+Performed a total of 0 changes.
+
+11.20.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.20.6. Executing OPT_SHARE pass.
+
+11.20.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.20.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+
+11.20.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.20.10. Finished OPT passes. (There is nothing left to do.)
+
+11.21. Executing TECHMAP pass (map to technology primitives).
+
+11.21.1. Executing Verilog-2005 frontend: C:\OSS-CA~1\bin\../share/yosys/techmap.v
+Parsing Verilog input from `C:\OSS-CA~1\bin\../share/yosys/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `\$__div_mod_u'.
+Generating RTLIL representation for module `\$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `\$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_pmux'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Successfully finished Verilog frontend.
+
+11.21.2. Continuing TECHMAP pass.
+Using extmapper simplemap for cells of type $xor.
+Using extmapper simplemap for cells of type $not.
+Using extmapper simplemap for cells of type $reduce_or.
+Using extmapper simplemap for cells of type $eq.
+Using extmapper simplemap for cells of type $and.
+Using extmapper simplemap for cells of type $dff.
+Using extmapper simplemap for cells of type $reduce_and.
+Using extmapper simplemap for cells of type $sdff.
+Using extmapper maccmap for cells of type $macc.
+  add \core.array_subsystem.array_core.pe00.acc_out [15:0] (16 bits, signed)
+  add \core.array_subsystem.a_row1_skewed * \core.array_subsystem.array_core.pe10.active_weight (8x8 bits, signed)
+Using extmapper simplemap for cells of type $sdffe.
+  add \core.array_subsystem.array_core.pe00.a_out * \core.array_subsystem.array_core.pe01.active_weight (8x8 bits, signed)
+  add \core.array_subsystem.array_core.pe00.a_in * \core.array_subsystem.array_core.pe00.active_weight (8x8 bits, signed)
+Using template $paramod$175e67c02b86e96b1288b9dc100122520d7240d8\_90_alu for cells of type $alu.
+Using template $paramod$8444c060fe271ac066e795d6958454547b34628c\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $logic_not.
+  add \core.array_subsystem.array_core.pe01.acc_out [15:0] (16 bits, signed)
+  add \core.array_subsystem.array_core.pe10.a_out * \core.array_subsystem.array_core.pe11.active_weight (8x8 bits, signed)
+Using template $paramod$7b00947614a4c48e09c066dca449366ddfa907a5\_90_alu for cells of type $alu.
+Using template $paramod$3ef7d3dd227da7627a99c5e5a6a4deb817573e39\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $pos.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000011 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000100000 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000010001 for cells of type $fa.
+Using template $paramod$3bb72ad0665cdca279bbc49ed6a39f403f16497f\_90_alu for cells of type $alu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000011000 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000010000 for cells of type $fa.
+Using template $paramod$6df0329addda9228fcc2546de2aaf14ad26c98e1\_90_alu for cells of type $alu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000010 for cells of type $lcu.
+Using extmapper simplemap for cells of type $or.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000010001 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000010000 for cells of type $lcu.
+No more expansions possible.
+<suppressed ~2076 debug messages>
+
+11.22. Executing OPT pass (performing simple optimizations).
+
+11.22.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+<suppressed ~1748 debug messages>
+
+11.22.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+<suppressed ~1629 debug messages>
+Removed a total of 543 cells.
+
+11.22.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 312 unused cells and 1002 unused wires.
+<suppressed ~313 debug messages>
+
+11.22.5. Finished fast OPT passes.
+
+11.23. Executing ABC pass (technology mapping using ABC).
+
+11.23.1. Extracting gate netlist of module `\npu_top' to `<abc-temp-dir>/input.blif'..
+Extracted 2357 gates and 2528 wires to a netlist network with 169 inputs and 116 outputs.
+
+11.23.1.1. Executing ABC.
+Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
+ABC: ABC command line: "source <abc-temp-dir>/abc.script".
+ABC: 
+ABC: + read_blif <abc-temp-dir>/input.blif 
+ABC: + read_library <abc-temp-dir>/stdcells.genlib 
+ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
+ABC: + strash 
+ABC: + dretime 
+ABC: + map 
+ABC: + write_blif <abc-temp-dir>/output.blif 
+
+11.23.1.2. Re-integrating ABC results.
+ABC RESULTS:                OR cells:       31
+ABC RESULTS:               MUX cells:       20
+ABC RESULTS:               AND cells:      159
+ABC RESULTS:               NOT cells:      117
+ABC RESULTS:               XOR cells:       64
+ABC RESULTS:             ORNOT cells:      171
+ABC RESULTS:               NOR cells:      894
+ABC RESULTS:              XNOR cells:      662
+ABC RESULTS:              NAND cells:       99
+ABC RESULTS:            ANDNOT cells:      114
+ABC RESULTS:        internal signals:     2243
+ABC RESULTS:           input signals:      169
+ABC RESULTS:          output signals:      116
+Removing temp directory.
+
+11.24. Executing OPT pass (performing simple optimizations).
+
+11.24.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module npu_top.
+
+11.24.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\npu_top'.
+Removed a total of 0 cells.
+
+11.24.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+11.24.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \npu_top..
+Removed 0 unused cells and 674 unused wires.
+<suppressed ~1 debug messages>
+
+11.24.5. Finished fast OPT passes.
+
+11.25. Executing HIERARCHY pass (managing design hierarchy).
+
+11.25.1. Analyzing design hierarchy..
+Top module:  \npu_top
+
+11.25.2. Analyzing design hierarchy..
+Top module:  \npu_top
+Removed 0 unused modules.
+
+11.26. Printing statistics.
+
+=== npu_top ===
+
+   Number of wires:               2429
+   Number of wire bits:           3937
+   Number of public wires:         161
+   Number of public wire bits:    1306
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               2526
+     $_ANDNOT_                     114
+     $_AND_                        159
+     $_DFF_P_                        6
+     $_MUX_                         20
+     $_NAND_                        99
+     $_NOR_                        894
+     $_NOT_                        117
+     $_ORNOT_                      171
+     $_OR_                          31
+     $_SDFFE_PN0P_                 146
+     $_SDFF_PN0_                    31
+     $_SDFF_PP0_                     2
+     $_XNOR_                       662
+     $_XOR_                         64
+     $scopeinfo                     10
+
+11.27. Executing CHECK pass (checking for obvious problems).
+Checking module npu_top...
+Found and reported 0 problems.
+
+12. Printing statistics.
+
+=== npu_top ===
+
+   Number of wires:               2429
+   Number of wire bits:           3937
+   Number of public wires:         161
+   Number of public wire bits:    1306
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               2526
+     $_ANDNOT_                     114
+     $_AND_                        159
+     $_DFF_P_                        6
+     $_MUX_                         20
+     $_NAND_                        99
+     $_NOR_                        894
+     $_NOT_                        117
+     $_ORNOT_                      171
+     $_OR_                          31
+     $_SDFFE_PN0P_                 146
+     $_SDFF_PN0_                    31
+     $_SDFF_PP0_                     2
+     $_XNOR_                       662
+     $_XOR_                         64
+     $scopeinfo                     10
+
+13. Executing LTP pass (find longest path).
+Warning: Detected loop at $auto$alumacc.cc:485:replace_alu$338.Y [1] in npu_top
+Warning: Detected loop at $abc$6354$new_n343 in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[5] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[0] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[1] in npu_top
+Warning: Detected loop at \core.ctrl.drain_cnt [2] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[5] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[0] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[1] in npu_top
+Warning: Detected loop at \core.ctrl.drain_cnt [1] in npu_top
+Warning: Detected loop at $auto$alumacc.cc:485:replace_alu$335.Y [2] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[5] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[0] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[1] in npu_top
+Warning: Detected loop at \core.ctrl.drain_cnt [0] in npu_top
+Warning: Detected loop at \core.ctrl.stream_idx [1] in npu_top
+Warning: Detected loop at \core.ctrl.stream_idx [0] in npu_top
+Warning: Detected loop at \core.ctrl.stream_idx [0] in npu_top
+Warning: Detected loop at $auto$alumacc.cc:485:replace_alu$338.Y [1] in npu_top
+Warning: Detected loop at $abc$6354$new_n343 in npu_top
+Warning: Detected loop at \core.ctrl.drain_cnt [1] in npu_top
+Warning: Detected loop at $auto$alumacc.cc:485:replace_alu$335.Y [2] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[5] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[0] in npu_top
+Warning: Detected loop at $abc$6354$auto$fsm_map.cc:170:map_fsm$195[1] in npu_top
+Warning: Detected loop at \core.ctrl.drain_cnt [0] in npu_top
+Warning: Detected loop at \core.ctrl.stream_idx [1] in npu_top
+Warning: Detected loop at \core.ctrl.stream_idx [0] in npu_top
+Warning: Detected loop at \core.ctrl.stream_idx [0] in npu_top
+
+Longest topological path in npu_top (length=85):
+    0: \clk
+    1: \core.ctrl.stream_idx [0] (via $auto$ff.cc:266:slice$908)
+    2: $auto$alumacc.cc:485:replace_alu$338.Y [1] (via $abc$6354$auto$blifparse.cc:396:parse_blif$6523)
+    3: \core.ctrl.stream_idx [1] (via $auto$ff.cc:266:slice$909)
+    4: $abc$6354$new_n337 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6406)
+    5: $abc$6354$new_n342 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6411)
+    6: $abc$6354$new_n343 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6412)
+    7: $abc$6354$auto$fsm_map.cc:170:map_fsm$195[5] (via $abc$6354$auto$blifparse.cc:396:parse_blif$6413)
+    8: \core.ctrl.state [5] (via $auto$ff.cc:266:slice$475)
+    9: $abc$6354$new_n336 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6405)
+   10: $abc$6354$new_n339 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6408)
+   11: $abc$6354$auto$fsm_map.cc:170:map_fsm$195[1] (via $abc$6354$auto$blifparse.cc:396:parse_blif$6409)
+   12: \core.ctrl.state [1] (via $auto$ff.cc:266:slice$471)
+   13: $abc$6354$auto$opt_dff.cc:253:combine_resets$259 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6400)
+   14: \core.ctrl.drain_cnt [1] (via $auto$ff.cc:266:slice$984)
+   15: $abc$6354$new_n332 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6401)
+   16: $auto$alumacc.cc:485:replace_alu$335.Y [2] (via $abc$6354$auto$blifparse.cc:396:parse_blif$6522)
+   17: \core.ctrl.drain_cnt [2] (via $auto$ff.cc:266:slice$985)
+   18: $abc$6354$new_n333 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6402)
+   19: $abc$6354$new_n2615 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8684)
+   20: $abc$6354$auto$fsm_map.cc:118:implement_pattern_cache$225 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8685)
+   21: \core.ctrl.state [4] (via $auto$ff.cc:266:slice$474)
+   22: $abc$6354$auto$fsm_map.cc:170:map_fsm$195[0] (via $abc$6354$auto$blifparse.cc:396:parse_blif$6361)
+   23: \core.ctrl.state [0] (via $auto$ff.cc:266:slice$470)
+   24: $abc$6354$new_n288 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6357)
+   25: $abc$6354$auto$fsm_map.cc:118:implement_pattern_cache$221 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7630)
+   26: \core.ctrl.state [3] (via $auto$ff.cc:266:slice$473)
+   27: $abc$6354$auto$fsm_map.cc:118:implement_pattern_cache$217 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7628)
+   28: \core.ctrl.state [2] (via $auto$ff.cc:266:slice$472)
+   29: \core.array_subsystem.array_core.pe00.active_weight [2] (via $auto$ff.cc:266:slice$812)
+   30: $abc$6354$new_n1067 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7136)
+   31: $abc$6354$new_n1068 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7137)
+   32: $abc$6354$new_n1070 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7139)
+   33: $abc$6354$new_n1071 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7140)
+   34: $abc$6354$new_n1112 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7181)
+   35: $abc$6354$new_n1113 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7182)
+   36: $abc$6354$new_n1114 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7183)
+   37: $abc$6354$new_n1158 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7227)
+   38: $abc$6354$new_n1159 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7228)
+   39: $abc$6354$new_n1160 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7229)
+   40: $abc$6354$new_n1212 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7281)
+   41: $abc$6354$new_n1213 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7282)
+   42: $abc$6354$new_n1214 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7283)
+   43: $abc$6354$new_n1265 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7334)
+   44: $abc$6354$new_n1268 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7337)
+   45: $abc$6354$new_n1269 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7338)
+   46: $abc$6354$new_n1270 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7339)
+   47: $abc$6354$new_n1361 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7430)
+   48: $abc$6354$new_n1362 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7431)
+   49: $abc$6354$new_n1403 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7472)
+   50: $abc$6354$new_n1404 (via $abc$6354$auto$blifparse.cc:396:parse_blif$7473)
+   51: $auto$maccmap.cc:240:synth$742.Y [11] (via $abc$6354$auto$blifparse.cc:396:parse_blif$7474)
+   52: \core.array_subsystem.array_core.pe00.acc_out [11] (via $auto$ff.cc:266:slice$797)
+   53: $abc$6354$new_n2393 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8462)
+   54: $abc$6354$new_n2394 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8463)
+   55: $abc$6354$new_n2395 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8464)
+   56: $abc$6354$new_n2398 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8467)
+   57: $abc$6354$new_n2399 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8468)
+   58: $abc$6354$new_n2403 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8472)
+   59: $abc$6354$new_n2407 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8476)
+   60: $abc$6354$new_n2408 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8477)
+   61: $abc$6354$new_n2412 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8481)
+   62: $abc$6354$new_n2414 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8483)
+   63: $abc$6354$new_n2461 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8530)
+   64: $abc$6354$new_n2464 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8533)
+   65: $abc$6354$new_n2465 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8534)
+   66: $abc$6354$new_n2466 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8535)
+   67: $abc$6354$new_n2542 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8611)
+   68: $abc$6354$new_n2543 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8612)
+   69: $abc$6354$new_n2577 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8646)
+   70: $abc$6354$new_n2578 (via $abc$6354$auto$blifparse.cc:396:parse_blif$8647)
+   71: $auto$maccmap.cc:240:synth$550.Y [15] (via $abc$6354$auto$blifparse.cc:396:parse_blif$8648)
+   72: \core.array_subsystem.array_core.pe10.acc_out [15] (via $auto$ff.cc:266:slice$670)
+   73: $abc$6354$new_n296 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6365)
+   74: $abc$6354$new_n298 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6367)
+   75: $abc$6354$new_n302 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6371)
+   76: $abc$6354$new_n310 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6379)
+   77: $abc$6354$new_n311 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6380)
+   78: \post0.relu_val [8] (via $abc$6354$auto$blifparse.cc:396:parse_blif$6393)
+   79: $abc$6354$new_n325 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6394)
+   80: $abc$6354$new_n326 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6395)
+   81: $abc$6354$new_n327 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6396)
+   82: $abc$6354$new_n328 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6397)
+   83: $abc$6354$new_n329 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6398)
+   84: $abc$6354$auto$opt_dff.cc:253:combine_resets$255 (via $abc$6354$auto$blifparse.cc:396:parse_blif$6399)
+   85: \post0.data_out [7] (via $auto$ff.cc:266:slice$492)
+
+Warnings: 11 unique messages, 29 total
+End of script. Logfile hash: a70db53ab6
+Yosys 0.39+149 (git sha1 b9d3bffda, x86_64-w64-mingw32-g++ 13.2.1 -Os)
+Time spent: 2% 29x opt_expr (0 sec), 2% 23x opt_clean (0 sec), ...

@@ -1,0 +1,7 @@
+read_verilog pe_weight_stationary.v
+read_verilog systolic_array_2x2.v
+hierarchy -check -top systolic_array_2x2
+proc; opt; memory; opt; fsm; opt
+techmap; opt
+stat
+write_verilog systolic_synth_netlist.v

@@ -1,0 +1,1380 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini-NPU Hardware Architecture Visualizer</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f293d;
+      --card-hover: #1e293b;
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.25);
+      --emerald: #34d399;
+      --emerald-glow: rgba(52, 211, 153, 0.25);
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --violet: #a78bfa;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --dark-muted: #64748b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.5;
+      padding-bottom: 80px;
+    }
+
+    header {
+      background: linear-gradient(180deg, #0f172a 0%, #090d16 100%);
+      border-bottom: 1px solid var(--card-border);
+      padding: 24px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .title-group h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .title-group h1 span {
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 14px;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .title-group p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .disclaimer-banner {
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 8px;
+      padding: 12px 18px;
+      max-width: 1400px;
+      margin: 20px auto 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13px;
+      color: #fde68a;
+    }
+    .disclaimer-banner strong { color: #fff; }
+
+    .nav-tabs {
+      max-width: 1400px;
+      margin: 20px auto;
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+      overflow-x: auto;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .nav-btn:hover { color: #fff; background: var(--card-hover); }
+    .nav-btn.active {
+      color: #fff;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--cyan);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* KPI Stats Ribbon */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 16px;
+      border-radius: 8px;
+      position: relative;
+    }
+    .kpi-label { font-size: 12px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .kpi-val { font-size: 24px; font-weight: 700; color: #fff; margin: 4px 0; font-family: var(--mono); }
+    .kpi-sub { font-size: 12px; color: var(--dark-muted); }
+
+    /* Interactive Hardware Canvas */
+    .view-section { display: none; }
+    .view-section.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+    }
+    @media (max-width: 1100px) { .grid-layout { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .panel h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel h3 { font-size: 15px; color: var(--cyan); margin: 16px 0 8px; }
+
+    /* Playback Controls */
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0f172a;
+      padding: 14px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #334155; border-color: var(--cyan); }
+    .btn.primary { background: #0284c7; border-color: #38bdf8; }
+    .btn.primary:hover { background: #0369a1; }
+    .cycle-indicator {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--cyan);
+      margin-left: auto;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Systolic 2x2 Mesh SVG Styling */
+    .mesh-container {
+      background: #0b1120;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 480px;
+      position: relative;
+    }
+    svg.npu-mesh { width: 100%; max-width: 720px; height: auto; }
+    .pe-box {
+      fill: #131d33;
+      stroke: #25334d;
+      stroke-width: 2;
+      rx: 8;
+      transition: all 0.3s;
+    }
+    .pe-box.active {
+      stroke: var(--cyan);
+      fill: #152744;
+      filter: drop-shadow(0 0 10px var(--cyan-glow));
+    }
+    .skew-box {
+      fill: #1a162b;
+      stroke: var(--violet);
+      stroke-width: 1.5;
+      stroke-dasharray: 4;
+      rx: 6;
+    }
+    .bus-wire {
+      stroke: #334155;
+      stroke-width: 2;
+      fill: none;
+      transition: stroke 0.3s;
+    }
+    .bus-wire.active {
+      stroke: var(--emerald);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 4px var(--emerald-glow));
+    }
+
+    /* Timeline Stepper for Hardware Evolution */
+    .evo-stepper {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 32px 0;
+    }
+    .evo-stepper::before {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: 30px;
+      right: 30px;
+      height: 2px;
+      background: #1e293b;
+      z-index: 1;
+    }
+    .evo-node {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      cursor: pointer;
+      flex: 1;
+    }
+    .evo-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2px solid #334155;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      margin: 0 auto 8px;
+      transition: all 0.2s;
+    }
+    .evo-node.active .evo-circle {
+      border-color: var(--cyan);
+      background: var(--cyan);
+      color: #090d16;
+      box-shadow: 0 0 14px var(--cyan-glow);
+    }
+    .evo-node.completed .evo-circle {
+      border-color: var(--emerald);
+      color: var(--emerald);
+    }
+    .evo-name { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .evo-dff { font-size: 11px; font-family: var(--mono); color: var(--cyan); }
+
+    /* FSM State Bubble Chart */
+    .fsm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .fsm-state-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .fsm-state-card:hover { border-color: var(--cyan); }
+    .fsm-state-card.active {
+      border-color: var(--cyan);
+      background: rgba(56, 189, 248, 0.1);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .fsm-code { font-family: var(--mono); font-size: 11px; color: var(--violet); }
+    .fsm-name { font-size: 14px; font-weight: 700; margin: 4px 0; color: #fff; }
+    .fsm-sig { font-family: var(--mono); font-size: 11px; color: var(--emerald); }
+
+    /* Double Buffer / DFF Demo Elements */
+    .dual-bank {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .bank-box {
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 16px;
+      background: #0b1120;
+    }
+    .bank-box.active-bank { border-color: var(--emerald); }
+    .bank-box.shadow-bank { border-color: var(--violet); }
+    .matrix-display {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .matrix-cell {
+      background: #1e293b;
+      padding: 10px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 4px;
+    }
+
+    /* Comparison Table */
+    table.comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    table.comp-table th, table.comp-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+    table.comp-table th { background: #0f172a; color: var(--muted); font-weight: 600; }
+    table.comp-table td.code-cell { font-family: var(--mono); color: var(--cyan); }
+
+    /* Badges & Tags */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-verified { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid var(--emerald); }
+    .badge-not { background: rgba(251, 113, 133, 0.15); color: var(--rose); border: 1px solid var(--rose); }
+
+    code {
+      font-family: var(--mono);
+      background: #0f172a;
+      color: var(--cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-content">
+      <div class="title-group">
+        <h1>Mini-NPU Hardware Visualizer <span>Verilog-2005 RTL</span></h1>
+        <p>Interactive Architecture, Systolic Datapath & Synthesis Explorer | Author: Saksham Singh Chowhan</p>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span class="badge badge-verified">RTL Simulation & Synthesis Verified</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Strict Framing Banner -->
+  <div class="disclaimer-banner">
+    <div style="font-size:20px;">ℹ️</div>
+    <div>
+      <strong>Digital Design Reality:</strong> This project is an <strong>RTL-level hardware architecture</strong> written in synthesizable Verilog. It was simulated (Icarus Verilog) and synthesized into technology-independent standard cells (Yosys) on a laptop. <strong>It was not physically fabricated into silicon.</strong> No physical area (mm²), chip clock frequency, or measured hardware wattage is claimed.
+    </div>
+  </div>
+
+  <div class="container" style="margin-top:20px;">
+    <!-- KPI Ribbon -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Architecture</div>
+        <div class="kpi-val" style="color:var(--cyan);">2×2 Systolic</div>
+        <div class="kpi-sub">Weight-Stationary Mesh</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Datapath Precision</div>
+        <div class="kpi-val" style="color:var(--emerald);">INT8 / 32-bit</div>
+        <div class="kpi-sub">[-128, 127] to 32-bit Acc</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Silicon Registers</div>
+        <div class="kpi-val" style="color:var(--violet);">263 DFFs</div>
+        <div class="kpi-sub">0 Latches Inferred</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Synthesized Primitives</div>
+        <div class="kpi-val" style="color:var(--amber);">3,627 Cells</div>
+        <div class="kpi-sub">Logic mapped by Yosys</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Control Layer</div>
+        <div class="kpi-val" style="color:#fff;">6-State FSM</div>
+        <div class="kpi-sub">Autonomous Hardware Autopilot</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-btn active" onclick="switchTab('tab-live')">1. Live Systolic Array (Cycle Stepper)</button>
+      <button class="nav-btn" onclick="switchTab('tab-evolution')">2. Design Evolution (196 → 263 DFFs)</button>
+      <button class="nav-btn" onclick="switchTab('tab-deepdive')">3. Microarchitectural Deep Dives</button>
+      <button class="nav-btn" onclick="switchTab('tab-software-vs-hw')">4. Software vs. Dedicated Hardware</button>
+      <button class="nav-btn" onclick="switchTab('tab-synthesis')">5. Synthesis & Verification Truth</button>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: LIVE 2x2 SYSTOLIC ARRAY & CYCLE-BY-CYCLE ANIMATION                 -->
+    <!-- ========================================================================= -->
+    <div id="tab-live" class="view-section active">
+      <div class="grid-layout">
+        <div class="panel">
+          <h2>2×2 Spatial Matrix Core with Hardware Skewing</h2>
+          
+          <!-- Cycle Controls -->
+          <div class="controls-bar">
+            <button class="btn" onclick="prevCycle()">⏮ Prev Cycle</button>
+            <button class="btn primary" id="playBtn" onclick="togglePlay()">▶ Play Simulation</button>
+            <button class="btn" onclick="nextCycle()">Next Cycle ⏭</button>
+            <button class="btn" onclick="resetCycle()">↺ Reset</button>
+            <div class="cycle-indicator" id="cycleDisplay">Documented Cycle: 0 | State: S_IDLE</div>
+          </div>
+
+          <!-- Dynamic SVG Hardware Visualization -->
+          <div class="mesh-container">
+            <svg class="npu-mesh" viewBox="0 0 680 480" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#38bdf8"/>
+                </marker>
+                <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#34d399"/>
+                </marker>
+              </defs>
+
+              <!-- External Input Labels (West Boundary) -->
+              <text x="20" y="125" fill="#94a3b8" font-size="12" font-family="monospace">Row 0 (Direct)</text>
+              <text x="20" y="145" fill="#38bdf8" font-size="16" font-family="monospace" font-weight="bold" id="txt-row0">A[0][k]: -</text>
+              <line x1="120" y1="140" x2="190" y2="140" stroke="#38bdf8" stroke-width="2" marker-end="url(#arr)"/>
+
+              <text x="20" y="275" fill="#94a3b8" font-size="12" font-family="monospace">Row 1 (Raw In)</text>
+              <text x="20" y="295" fill="#a78bfa" font-size="16" font-family="monospace" font-weight="bold" id="txt-row1">A[1][k]: -</text>
+              <line x1="100" y1="290" x2="120" y2="290" stroke="#a78bfa" stroke-width="2" marker-end="url(#arr)"/>
+
+              <!-- Hardware Skew Register for Row 1 -->
+              <rect x="120" y="260" width="60" height="60" class="skew-box"/>
+              <text x="125" y="285" fill="#a78bfa" font-size="10" font-family="monospace">Row 1 Skew</text>
+              <text x="135" y="305" fill="#fff" font-size="14" font-weight="bold" font-family="monospace" id="txt-skew-reg">DFF: -</text>
+              <line x1="180" y1="290" x2="210" y2="290" stroke="#38bdf8" stroke-width="2" marker-end="url(#arr)"/>
+
+              <!-- Northern Boundary 0-Inputs -->
+              <text x="250" y="45" fill="#64748b" font-size="12" font-family="monospace">acc_in = 0</text>
+              <line x1="280" y1="55" x2="280" y2="85" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+              <text x="440" y="45" fill="#64748b" font-size="12" font-family="monospace">acc_in = 0</text>
+              <line x1="470" y1="55" x2="470" y2="85" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+
+              <!-- Processing Element [0][0] -->
+              <g id="node-pe00">
+                <rect x="210" y="90" width="140" height="110" class="pe-box" id="box-pe00"/>
+                <text x="225" y="115" fill="#fff" font-size="14" font-weight="bold">PE[0][0]</text>
+                <text x="225" y="135" fill="#94a3b8" font-size="11" font-family="monospace">Act W: <tspan fill="#fbbf24" font-weight="bold">2</tspan></text>
+                <text x="225" y="155" fill="#94a3b8" font-size="11" font-family="monospace">a_in: <tspan fill="#38bdf8" id="pe00-ain">-</tspan></text>
+                <text x="225" y="175" fill="#94a3b8" font-size="11" font-family="monospace">acc: <tspan fill="#34d399" font-weight="bold" id="pe00-acc">0</tspan></text>
+              </g>
+
+              <!-- Processing Element [0][1] -->
+              <g id="node-pe01">
+                <rect x="400" y="90" width="140" height="110" class="pe-box" id="box-pe01"/>
+                <text x="415" y="115" fill="#fff" font-size="14" font-weight="bold">PE[0][1]</text>
+                <text x="415" y="135" fill="#94a3b8" font-size="11" font-family="monospace">Act W: <tspan fill="#fbbf24" font-weight="bold">3</tspan></text>
+                <text x="415" y="155" fill="#94a3b8" font-size="11" font-family="monospace">a_in: <tspan fill="#38bdf8" id="pe01-ain">-</tspan></text>
+                <text x="415" y="175" fill="#94a3b8" font-size="11" font-family="monospace">acc: <tspan fill="#34d399" font-weight="bold" id="pe01-acc">0</tspan></text>
+              </g>
+
+              <!-- Processing Element [1][0] -->
+              <g id="node-pe10">
+                <rect x="210" y="240" width="140" height="110" class="pe-box" id="box-pe10"/>
+                <text x="225" y="265" fill="#fff" font-size="14" font-weight="bold">PE[1][0]</text>
+                <text x="225" y="285" fill="#94a3b8" font-size="11" font-family="monospace">Act W: <tspan fill="#fbbf24" font-weight="bold">4</tspan></text>
+                <text x="225" y="305" fill="#94a3b8" font-size="11" font-family="monospace">a_in: <tspan fill="#38bdf8" id="pe10-ain">-</tspan></text>
+                <text x="225" y="325" fill="#94a3b8" font-size="11" font-family="monospace">acc: <tspan fill="#34d399" font-weight="bold" id="pe10-acc">0</tspan></text>
+              </g>
+
+              <!-- Processing Element [1][1] -->
+              <g id="node-pe11">
+                <rect x="400" y="240" width="140" height="110" class="pe-box" id="box-pe11"/>
+                <text x="415" y="265" fill="#fff" font-size="14" font-weight="bold">PE[1][1]</text>
+                <text x="415" y="285" fill="#94a3b8" font-size="11" font-family="monospace">Act W: <tspan fill="#fbbf24" font-weight="bold">5</tspan></text>
+                <text x="415" y="305" fill="#94a3b8" font-size="11" font-family="monospace">a_in: <tspan fill="#38bdf8" id="pe11-ain">-</tspan></text>
+                <text x="415" y="325" fill="#94a3b8" font-size="11" font-family="monospace">acc: <tspan fill="#34d399" font-weight="bold" id="pe11-acc">0</tspan></text>
+              </g>
+
+              <!-- Internal Systolic Routing (West -> East Activations) -->
+              <line x1="350" y1="140" x2="395" y2="140" stroke="#38bdf8" stroke-width="2" marker-end="url(#arr)" id="wire-a00-01"/>
+              <line x1="350" y1="290" x2="395" y2="290" stroke="#38bdf8" stroke-width="2" marker-end="url(#arr)" id="wire-a10-11"/>
+
+              <!-- Internal Systolic Routing (North -> South Partial Sums) -->
+              <line x1="280" y1="200" x2="280" y2="235" stroke="#34d399" stroke-width="2" marker-end="url(#arr-green)" id="wire-acc00-10"/>
+              <line x1="470" y1="200" x2="470" y2="235" stroke="#34d399" stroke-width="2" marker-end="url(#arr-green)" id="wire-acc01-11"/>
+
+              <!-- South Output Lines to Requantizer -->
+              <line x1="280" y1="350" x2="280" y2="395" stroke="#34d399" stroke-width="2" marker-end="url(#arr-green)"/>
+              <line x1="470" y1="350" x2="470" y2="395" stroke="#34d399" stroke-width="2" marker-end="url(#arr-green)"/>
+
+              <!-- Requantization & Activation Blocks -->
+              <rect x="230" y="400" width="100" height="50" rx="6" fill="#1e1b4b" stroke="#6366f1"/>
+              <text x="240" y="420" fill="#a5b4fc" font-size="10" font-family="monospace">Post0: ReLU+Shift</text>
+              <text x="250" y="438" fill="#34d399" font-size="14" font-weight="bold" font-family="monospace" id="out0-int8">Out0: -</text>
+
+              <rect x="420" y="400" width="100" height="50" rx="6" fill="#1e1b4b" stroke="#6366f1"/>
+              <text x="430" y="420" fill="#a5b4fc" font-size="10" font-family="monospace">Post1: ReLU+Shift</text>
+              <text x="440" y="438" fill="#34d399" font-size="14" font-weight="bold" font-family="monospace" id="out1-int8">Out1: -</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Telemetry & State Side Panel -->
+        <div class="panel">
+          <h2>Silicon Cycle Inspector</h2>
+          <div style="background:#0f172a; padding:16px; border-radius:8px; border:1px solid var(--card-border);">
+            <div style="font-size:12px; color:var(--muted); text-transform:uppercase;">Active FSM State</div>
+            <div style="font-size:20px; font-weight:700; color:var(--cyan); font-family:var(--mono);" id="info-state">S_IDLE (000)</div>
+            <div style="font-size:12px; color:var(--emerald); margin-top:4px;" id="info-signals">Active Signals: None</div>
+          </div>
+
+          <h3 style="margin-top:20px;">Mathematical Ground Truth</h3>
+          <p style="font-size:12px; color:var(--muted);">
+            The documented operation evaluated in simulation is <code>C = Aᵀ × W</code>:
+          </p>
+          <div style="background:#0b1120; padding:12px; border-radius:6px; font-family:var(--mono); font-size:12px; margin-top:8px;">
+            A = [[1, 2], [3, 4]]<br>
+            W = [[2, 3], [4, 5]]<br>
+            --------------------<br>
+            Raw C  = [[14, 18], [20, 26]]<br>
+            INT8 (>>>1) = [[7, 9], [10, 13]]
+          </div>
+
+          <h3 style="margin-top:20px;">Cycle Action Log</h3>
+          <div id="cycleLog" style="font-size:13px; color:var(--muted); background:#0f172a; padding:14px; border-radius:6px; min-height:120px; line-height:1.6;">
+            Awaiting execution start. Press <strong>Next Cycle</strong> or <strong>Play</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: DESIGN EVOLUTION TIMELINE (196 -> 263 DFFs)                        -->
+    <!-- ========================================================================= -->
+    <div id="tab-evolution" class="view-section">
+      <div class="panel">
+        <h2>Progressive Hardware Evolution (RTL Transformations)</h2>
+        <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">
+          Explore each physical hardware increment. <strong>Important architectural note:</strong> Increasing D-flip-flop counts represent additional dedicated hardware structures added to silicon—not a synthetic speedup ranking.
+        </p>
+
+        <!-- Stepper -->
+        <div class="evo-stepper">
+          <div class="evo-node active" onclick="setEvo(1)">
+            <div class="evo-circle">1</div>
+            <div class="evo-name">MAC Core</div>
+            <div class="evo-dff">Arithmetic</div>
+          </div>
+          <div class="evo-node" onclick="setEvo(2)">
+            <div class="evo-circle">2</div>
+            <div class="evo-name">2×2 Array</div>
+            <div class="evo-dff">196 DFFs</div>
+          </div>
+          <div class="evo-node" onclick="setEvo(3)">
+            <div class="evo-circle">3</div>
+            <div class="evo-name">Double-Buffer</div>
+            <div class="evo-dff">228 DFFs</div>
+          </div>
+          <div class="evo-node" onclick="setEvo(4)">
+            <div class="evo-circle">4</div>
+            <div class="evo-name">HW Skewing</div>
+            <div class="evo-dff">237 DFFs</div>
+          </div>
+          <div class="evo-node" onclick="setEvo(5)">
+            <div class="evo-circle">5</div>
+            <div class="evo-name">Autonomous FSM</div>
+            <div class="evo-dff">245 DFFs</div>
+          </div>
+          <div class="evo-node" onclick="setEvo(6)">
+            <div class="evo-circle">6</div>
+            <div class="evo-name">INT8 Requant</div>
+            <div class="evo-dff">263 DFFs</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Evo Info Card -->
+        <div id="evo-card" style="background:#0b1120; border:1px solid var(--card-border); padding:24px; border-radius:8px; margin-top:20px;">
+          <!-- Dynamically populated by JS -->
+        </div>
+
+        <h3 style="margin-top:28px;">Hardware Evolution Comparison Matrix</h3>
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Architecture Stage</th>
+              <th>Registers (DFFs)</th>
+              <th>What Changed in Hardware</th>
+              <th>RTL Problem Resolved</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Phase 2: Basic 2×2 Array</strong></td>
+              <td class="code-cell">196 DFFs</td>
+              <td>4 PEs with single 8-bit weight register each</td>
+              <td>Basic systolic mesh created; input skewing handled in software</td>
+              <td><span class="badge badge-verified">Verified</span></td>
+            </tr>
+            <tr>
+              <td><strong>Phase 3: Double Buffering</strong></td>
+              <td class="code-cell">228 DFFs (+32)</td>
+              <td>Added 4× <code>shadow_weight</code> registers (Bank 1)</td>
+              <td>Eliminated pipeline stall cycles during neural layer weight loads</td>
+              <td><span class="badge badge-verified">Verified</span></td>
+            </tr>
+            <tr>
+              <td><strong>Phase 4: Hardware Skew</strong></td>
+              <td class="code-cell">237 DFFs (+9)</td>
+              <td>8-bit DFF buffer + valid flag on Row 1</td>
+              <td>Eliminated manual testbench staggered injection; natural matrix input</td>
+              <td><span class="badge badge-verified">Verified</span></td>
+            </tr>
+            <tr>
+              <td><strong>Phase 5: Autonomous FSM</strong></td>
+              <td class="code-cell">245 DFFs (+8)</td>
+              <td>6-state sequential controller, stream & drain counters</td>
+              <td>Eliminated testbench signal bit-banging; autonomous single-pulse execution</td>
+              <td><span class="badge badge-verified">Verified</span></td>
+            </tr>
+            <tr>
+              <td><strong>Phase 6: Requantization</strong></td>
+              <td class="code-cell">263 DFFs (+18)</td>
+              <td>2× Requant units (ReLU, Shift >>> 1, INT8 clamp)</td>
+              <td>Compressed 32-bit accumulators back to INT8 for subsequent layers</td>
+              <td><span class="badge badge-verified">Verified</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: MICROARCHITECTURAL DEEP DIVES                                      -->
+    <!-- ========================================================================= -->
+    <div id="tab-deepdive" class="view-section">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+        
+        <!-- Double-Buffered Weight Storage Demo -->
+        <div class="panel">
+          <h2>1. Ping-Pong Double-Buffering</h2>
+          <p style="font-size:13px; color:var(--muted);">
+            Separates active computation from memory loading. Active bank feeds the multiplier; shadow bank absorbs incoming memory writes in background.
+          </p>
+          <div class="dual-bank">
+            <div class="bank-box active-bank">
+              <div style="font-size:12px; color:var(--emerald); font-weight:700;">ACTIVE BANK (Bank 0)</div>
+              <div style="font-size:11px; color:var(--muted);">Currently feeding MAC $mul</div>
+              <div class="matrix-display" id="demo-active-mat">
+                <div class="matrix-cell">2</div>
+                <div class="matrix-cell">3</div>
+                <div class="matrix-cell">4</div>
+                <div class="matrix-cell">5</div>
+              </div>
+            </div>
+            <div class="bank-box shadow-bank">
+              <div style="font-size:12px; color:var(--violet); font-weight:700;">SHADOW BANK (Bank 1)</div>
+              <div style="font-size:11px; color:var(--muted);">Preloaded via <code>load_weight</code></div>
+              <div class="matrix-display" id="demo-shadow-mat">
+                <div class="matrix-cell" style="color:var(--dark-muted)">--</div>
+                <div class="matrix-cell" style="color:var(--dark-muted)">--</div>
+                <div class="matrix-cell" style="color:var(--dark-muted)">--</div>
+                <div class="matrix-cell" style="color:var(--dark-muted)">--</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:14px;">
+            <button class="btn" onclick="demoLoadShadow()">1. Pulse load_weight (Load W2)</button>
+            <button class="btn primary" onclick="demoSwapBanks()">2. Pulse swap_weights (1-Cycle Swap)</button>
+          </div>
+          <p id="demo-db-status" style="font-size:12px; color:var(--cyan); margin-top:10px; font-family:var(--mono);">
+            Status: Active holds Layer 1 weights. Shadow is uninitialized.
+          </p>
+        </div>
+
+        <!-- DFF & Clock Edge Explainer -->
+        <div class="panel">
+          <h2>2. What a D-Flip-Flop (DFF) Actually Does</h2>
+          <p style="font-size:13px; color:var(--muted);">
+            In Verilog, <code>reg [7:0]</code> is not a software variable—it generates 8 physical 1-bit D-Flip-Flops clocked to <code>posedge clk</code>.
+          </p>
+          <div style="background:#0b1120; border:1px solid #1e293b; border-radius:8px; padding:18px; margin:14px 0; text-align:center;">
+            <div style="display:inline-flex; align-items:center; gap:14px; font-family:var(--mono); font-size:15px;">
+              <div>D Input: <span id="dff-d-val" style="color:var(--cyan); font-weight:bold;">1</span></div>
+              <div style="border:1px solid var(--violet); padding:10px 14px; border-radius:6px; background:#18132e;">
+                [ D FLIP-FLOP ]<br>
+                <span style="font-size:10px; color:var(--muted);">Clock: <span id="clk-state" style="color:#fff;">0</span></span>
+              </div>
+              <div>Q Output: <span id="dff-q-val" style="color:var(--emerald); font-weight:bold;">0</span></div>
+            </div>
+            <div style="margin-top:14px;">
+              <button class="btn" onclick="toggleClock()">Toggle Clock Edge (0 → 1)</button>
+              <button class="btn" onclick="toggleDInput()">Change D Input</button>
+            </div>
+          </div>
+          <p style="font-size:12px; color:var(--muted);">
+            Total 263 DFFs in <code>npu_top</code> breakdown: 228 in PEs, 9 in Skew FIFOs, 8 in FSM Controller, 18 in Requantizers. <strong>263 DFFs does NOT mean 263 CPU cores.</strong>
+          </p>
+        </div>
+
+        <!-- Autonomous 6-State FSM -->
+        <div class="panel" style="grid-column: span 2;">
+          <h2>3. Autonomous Finite State Machine (FSM Controller)</h2>
+          <p style="font-size:13px; color:var(--muted);">
+            Click on any state to inspect its entry condition, active control strobes, and hardware responsibility:
+          </p>
+          <div class="fsm-grid">
+            <div class="fsm-state-card active" onclick="inspectFSM('S_IDLE')">
+              <div class="fsm-code">3'b000</div>
+              <div class="fsm-name">S_IDLE</div>
+              <div class="fsm-sig">busy = 0</div>
+            </div>
+            <div class="fsm-state-card" onclick="inspectFSM('S_LOAD_W')">
+              <div class="fsm-code">3'b001</div>
+              <div class="fsm-name">S_LOAD_W</div>
+              <div class="fsm-sig">load_weight = 1</div>
+            </div>
+            <div class="fsm-state-card" onclick="inspectFSM('S_SWAP_W')">
+              <div class="fsm-code">3'b010</div>
+              <div class="fsm-name">S_SWAP_W</div>
+              <div class="fsm-sig">swap_weights = 1</div>
+            </div>
+            <div class="fsm-state-card" onclick="inspectFSM('S_STREAM')">
+              <div class="fsm-code">3'b011</div>
+              <div class="fsm-name">S_STREAM</div>
+              <div class="fsm-sig">matrix_valid_in = 1</div>
+            </div>
+            <div class="fsm-state-card" onclick="inspectFSM('S_DRAIN')">
+              <div class="fsm-code">3'b100</div>
+              <div class="fsm-name">S_DRAIN</div>
+              <div class="fsm-sig">matrix_valid_in = 0</div>
+            </div>
+            <div class="fsm-state-card" onclick="inspectFSM('S_DONE')">
+              <div class="fsm-code">3'b101</div>
+              <div class="fsm-name">S_DONE</div>
+              <div class="fsm-sig">done = 1 (pulse)</div>
+            </div>
+          </div>
+          <div id="fsm-detail" style="background:#0b1120; border:1px solid #1e293b; padding:16px; border-radius:6px; font-size:13px;">
+            Select a state above to view RTL details.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: SOFTWARE VS DEDICATED HARDWARE (CONCEPTUAL COMPARISON)             -->
+    <!-- ========================================================================= -->
+    <div id="tab-software-vs-hw" class="view-section">
+      <div class="panel">
+        <h2>General-Purpose Software vs. Dedicated Hardware Execution</h2>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-top:16px;">
+          
+          <!-- Left: Software Model -->
+          <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:20px;">
+            <div style="font-size:15px; font-weight:700; color:var(--rose); margin-bottom:6px;">
+              Conceptual General-Purpose CPU / Software Model
+            </div>
+            <p style="font-size:12px; color:var(--muted); margin-bottom:14px;">
+              Note: This is a conceptual software model, not the exact proprietary schematic of an Intel host core.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:10px; font-family:var(--mono); font-size:12px;">
+              <div style="background:#1e293b; padding:10px; border-radius:4px; text-align:center;">1. Instruction Memory (Bytecode)</div>
+              <div style="text-align:center; color:var(--muted);">↓ (Variable length fetch)</div>
+              <div style="background:#1e293b; padding:10px; border-radius:4px; text-align:center;">2. Front-End Decoder & Micro-op Expansion</div>
+              <div style="text-align:center; color:var(--muted);">↓ (Renaming & out-of-order scheduling)</div>
+              <div style="background:#1e293b; padding:10px; border-radius:4px; text-align:center;">3. Register File Arbitration</div>
+              <div style="text-align:center; color:var(--muted);">↓ (ALU dispatch port contention)</div>
+              <div style="background:#1e293b; padding:10px; border-radius:4px; text-align:center;">4. Execution Port Multiplier</div>
+              <div style="text-align:center; color:var(--muted);">↓ (Write-back buffer)</div>
+              <div style="background:#1e293b; padding:10px; border-radius:4px; text-align:center;">5. L1/L2/L3 Memory Hierarchy</div>
+            </div>
+            <p style="font-size:12px; color:var(--muted); margin-top:14px;">
+              Every addition or multiplication requires burning continuous power fetching, decoding, and dispatching dynamic instruction streams.
+            </p>
+          </div>
+
+          <!-- Right: Dedicated RTL Datapath -->
+          <div style="background:#0f172a; border:1px solid var(--cyan); border-radius:8px; padding:20px; box-shadow:0 0 16px var(--cyan-glow);">
+            <div style="font-size:15px; font-weight:700; color:var(--cyan); margin-bottom:6px;">
+              My Mini-NPU Synthesizable RTL Datapath
+            </div>
+            <p style="font-size:12px; color:var(--muted); margin-bottom:14px;">
+              Dedicated spatial silicon architecture designed from scratch in Verilog.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:10px; font-family:var(--mono); font-size:12px;">
+              <div style="background:#132338; border:1px solid var(--cyan); padding:10px; border-radius:4px; text-align:center;">
+                1. Pure INT8 Streaming Input Bus
+              </div>
+              <div style="text-align:center; color:var(--cyan);">↓ (Physical copper wire route)</div>
+              <div style="background:#132338; border:1px solid var(--cyan); padding:10px; border-radius:4px; text-align:center;">
+                2. Hardware Skew Buffer (DFF Delay)
+              </div>
+              <div style="text-align:center; color:var(--cyan);">↓ (Diagonal wavefront alignment)</div>
+              <div style="background:#132338; border:1px solid var(--cyan); padding:10px; border-radius:4px; text-align:center;">
+                3. 2×2 Weight-Stationary PE Mesh
+              </div>
+              <div style="text-align:center; color:var(--cyan);">↓ (Direct localized point-to-point buses)</div>
+              <div style="background:#132338; border:1px solid var(--cyan); padding:10px; border-radius:4px; text-align:center;">
+                4. 32-bit Pipelined Accumulator Registers
+              </div>
+              <div style="text-align:center; color:var(--cyan);">↓ (Pipelined combinational reduction)</div>
+              <div style="background:#132338; border:1px solid var(--cyan); padding:10px; border-radius:4px; text-align:center;">
+                5. On-Chip ReLU + Shift >>> 1 + Saturating INT8 Clamp
+              </div>
+            </div>
+            <p style="font-size:12px; color:var(--emerald); margin-top:14px;">
+              Zero instruction decoding. Spatial dataflow propagates purely through clock edges (<code>posedge clk</code>) with deterministic, cycle-accurate latency.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 5: SYNTHESIS & VERIFICATION TRUTH                                      -->
+    <!-- ========================================================================= -->
+    <div id="tab-synthesis" class="view-section">
+      <div class="panel">
+        <h2>What Did Yosys Synthesize in the Design?</h2>
+        <p style="font-size:13px; color:var(--muted);">
+          Technology-independent CMOS standard cell primitives generated during logic synthesis:
+        </p>
+
+        <div class="kpi-grid" style="margin-top:16px;">
+          <div class="kpi-card">
+            <div class="kpi-label">$_AND_ Gates</div>
+            <div class="kpi-val">1,551</div>
+            <div class="kpi-sub">Partial product generation</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">$_XOR_ Gates</div>
+            <div class="kpi-val">911</div>
+            <div class="kpi-sub">Full adder sum trees</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">$_OR_ Gates</div>
+            <div class="kpi-val">628</div>
+            <div class="kpi-sub">Carry propagation chains</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">$_MUX_ Cells</div>
+            <div class="kpi-val">101</div>
+            <div class="kpi-sub">Multiplexers / bank select</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">$_NOT_ Inverters</div>
+            <div class="kpi-val">173</div>
+            <div class="kpi-sub">Signal inversions</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">D-Flip-Flops</div>
+            <div class="kpi-val" style="color:var(--violet);">263</div>
+            <div class="kpi-sub">$_SDFFE_ / $_SDFF_ (0 Latches)</div>
+          </div>
+        </div>
+
+        <div style="background:#0b1120; border:1px solid #334155; padding:16px; border-radius:8px; margin:20px 0;">
+          <div style="font-weight:700; color:#fff; font-size:14px; margin-bottom:6px;">Total Synthesized Count: 3,627 Cells</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.6;">
+            <strong>Critical Accuracy Boundary:</strong> These 3,627 cells represent abstract standard-cell logic elements generated by Yosys Open Synthesis Suite. They do <strong>not</strong> represent fabricated silicon transistors or a physical area in square millimeters (mm²).
+          </div>
+        </div>
+
+        <!-- What I Engineered vs What This Project Is Not -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:24px;">
+          <div style="background:#061a14; border:1px solid var(--emerald); border-radius:8px; padding:18px;">
+            <div style="color:var(--emerald); font-weight:700; font-size:14px; margin-bottom:10px;">
+              ✓ What I Actually Engineered (Demonstrated)
+            </div>
+            <ul style="font-size:12px; color:#cbd5e1; line-height:1.8; margin-left:18px;">
+              <li>Signed 8-bit MAC unit with 32-bit accumulation</li>
+              <li>Weight-Stationary Processing Element microarchitecture</li>
+              <li>2×2 orthogonal systolic array mesh with localized routing</li>
+              <li>Ping-Pong double-buffering (active/shadow registers)</li>
+              <li>Hardware wavefront skew delay buffer (Row 1 DFF)</li>
+              <li>6-state autonomous hardware controller FSM</li>
+              <li>In-pipeline ReLU, fixed-point shift (>>> 1), and INT8 clamp</li>
+              <li>Icarus Verilog testbenches & GTKWave waveform verification</li>
+              <li>Yosys logic synthesis netlist lowering (0 inferred latches)</li>
+            </ul>
+          </div>
+
+          <div style="background:#1f0d14; border:1px solid var(--rose); border-radius:8px; padding:18px;">
+            <div style="color:var(--rose); font-weight:700; font-size:14px; margin-bottom:10px;">
+              ✗ What This Project Is NOT (Technical Guardrails)
+            </div>
+            <ul style="font-size:12px; color:#cbd5e1; line-height:1.8; margin-left:18px;">
+              <li>NOT physically fabricated on an ASIC silicon wafer</li>
+              <li>NOT flashed onto an FPGA development board yet</li>
+              <li>NO measured custom NPU wattage or physical battery draw</li>
+              <li>NO custom physical clock frequency (MHz/GHz) measured</li>
+              <li>NO fabricated silicon area in mm² claimed</li>
+              <li>NO claims of measured superiority over Intel's AI Boost NPU</li>
+              <li>The laptop CPU was NOT replaced or hardware-modified</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Future Roadmap -->
+        <h3 style="margin-top:28px;">Development Pipeline: Current State vs. Future Phases</h3>
+        <div style="display:flex; justify-content:space-between; margin-top:14px; gap:10px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:180px; background:#0f172a; border:1px solid var(--emerald); border-radius:6px; padding:14px;">
+            <span class="badge badge-verified">Current Stage</span>
+            <div style="font-weight:700; font-size:14px; margin:8px 0 4px; color:#fff;">RTL Simulation & Synthesis</div>
+            <div style="font-size:11px; color:var(--muted);">Completed in Verilog, Icarus, and Yosys.</div>
+          </div>
+          <div style="flex:1; min-width:180px; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:14px;">
+            <span class="badge" style="background:#1e293b; color:var(--muted);">Future Stage 1</span>
+            <div style="font-weight:700; font-size:14px; margin:8px 0 4px; color:#fff;">Static Timing Analysis (STA)</div>
+            <div style="font-size:11px; color:var(--muted);">Critical path analysis for max operating MHz.</div>
+          </div>
+          <div style="flex:1; min-width:180px; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:14px;">
+            <span class="badge" style="background:#1e293b; color:var(--muted);">Future Stage 2</span>
+            <div style="font-weight:700; font-size:14px; margin:8px 0 4px; color:#fff;">FPGA Implementation</div>
+            <div style="font-size:11px; color:var(--muted);">Bitstream generation & physical board execution.</div>
+          </div>
+          <div style="flex:1; min-width:180px; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:14px;">
+            <span class="badge" style="background:#1e293b; color:var(--muted);">Future Stage 3</span>
+            <div style="font-weight:700; font-size:14px; margin:8px 0 4px; color:#fff;">ASIC Place & Route</div>
+            <div style="font-size:11px; color:var(--muted);">GDSII layout targeting open-source SkyWater 130nm PDK.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Navigation Routing
+    function switchTab(tabId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // =========================================================================
+    // SIMULATION STATE MACHINE (Cycle 0 to 9)
+    // =========================================================================
+    const simSteps = [
+      {
+        cycle: 0,
+        state: "S_IDLE (3'b000)",
+        signals: "None (Awaiting host start command)",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "-", out1: "-",
+        log: "Cycle 0: System is IDLE. Clocks cycling. Accumulators and skew registers cleared."
+      },
+      {
+        cycle: 1,
+        state: "S_LOAD_W (3'b001)",
+        signals: "load_weight = 1",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "-", out1: "-",
+        log: "Cycle 1 [S_LOAD_W]: Host pulsed start. Controller asserts load_weight=1. Layer 1 weights [[2,3],[4,5]] captured into shadow registers."
+      },
+      {
+        cycle: 2,
+        state: "S_SWAP_W (3'b010)",
+        signals: "swap_weights = 1",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "-", out1: "-",
+        log: "Cycle 2 [S_SWAP_W]: Controller asserts swap_weights=1. Weights flip instantly from shadow to active registers (W00=2, W01=3, W10=4, W11=5)."
+      },
+      {
+        cycle: 3,
+        state: "S_STREAM (3'b011) [Step 1]",
+        signals: "matrix_valid_in = 1, stream_idx = 0",
+        row0: "1", row1: "3", skew: "3",
+        pe00: { a: "1", acc: 2, act: true },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "-", out1: "-",
+        log: "Cycle 3 [S_STREAM]: First matrix column injected simultaneously. Row 0 gets 1 (enters PE00 immediately: 1×2 = 2). Row 1 gets 3 (captured into HW Skew Register)."
+      },
+      {
+        cycle: 4,
+        state: "S_STREAM (3'b011) [Step 2]",
+        signals: "matrix_valid_in = 1, stream_idx = 1",
+        row0: "2", row1: "4", skew: "4",
+        pe00: { a: "2", acc: 4, act: true },
+        pe01: { a: "1", acc: 3, act: true },
+        pe10: { a: "3", acc: 14, act: true },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "-", out1: "-",
+        log: "Cycle 4 [S_STREAM]: Second column injected. Row 0 gets 2. Row 1 skewed 3 enters PE10! Math: PE10 computes 3×4=12 + North acc(2) = 14! Activation 1 routes East to PE01."
+      },
+      {
+        cycle: 5,
+        state: "S_DRAIN (3'b100) [Count 1]",
+        signals: "matrix_valid_in = 0, drain_cnt = 1",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "2", acc: 6, act: true },
+        pe10: { a: "4", acc: 20, act: true },
+        pe11: { a: "3", acc: 18, act: true },
+        out0: "14", out1: "-",
+        log: "Cycle 5 [S_DRAIN]: Input complete. Systolic wavefront drains South. PE10 finishes 4×4=16 + North(4) = 20. PE11 receives 3, computes 3×5=15 + North(3) = 18. Col 0 emits 14!"
+      },
+      {
+        cycle: 6,
+        state: "S_DRAIN (3'b100) [Count 2]",
+        signals: "matrix_valid_in = 0, drain_cnt = 2",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "4", acc: 26, act: true },
+        out0: "20 (-> 10)", out1: "18 (-> 9)",
+        log: "Cycle 6 [S_DRAIN]: PE11 finishes 4×5=20 + North(6) = 26. Post-processing unit processes Col 0 (14 >>> 1 = 7, then 20 >>> 1 = 10) and Col 1 (18 >>> 1 = 9)."
+      },
+      {
+        cycle: 7,
+        state: "S_DRAIN (3'b100) [Count 3]",
+        signals: "matrix_valid_in = 0, drain_cnt = 3",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "10", out1: "26 (-> 13)",
+        log: "Cycle 7 [S_DRAIN]: Pipeline tail flush. Col 1 finishes post-processing: 26 >>> 1 = 13. Output valid flags asserted."
+      },
+      {
+        cycle: 8,
+        state: "S_DRAIN (3'b100) [Count 4]",
+        signals: "matrix_valid_in = 0, drain_cnt = 4",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "-", out1: "13",
+        log: "Cycle 8 [S_DRAIN]: All systolic registers drained. Final INT8 tensors captured."
+      },
+      {
+        cycle: 9,
+        state: "S_DONE (3'b101)",
+        signals: "done = 1 (Host Interrupt Pulse), busy = 0",
+        row0: "-", row1: "-", skew: "-",
+        pe00: { a: "-", acc: 0, act: false },
+        pe01: { a: "-", acc: 0, act: false },
+        pe10: { a: "-", acc: 0, act: false },
+        pe11: { a: "-", acc: 0, act: false },
+        out0: "7, 10", out1: "9, 13",
+        log: "Cycle 9 [S_DONE]: Matrix multiplication complete! Controller pulses done=1 to host CPU. Outputs fully verified. Returning to S_IDLE."
+      }
+    ];
+
+    let currentCycle = 0;
+    let timer = null;
+
+    function renderSimulation() {
+      const s = simSteps[currentCycle];
+      document.getElementById('cycleDisplay').innerText = `Documented Cycle: ${s.cycle} | ${s.state}`;
+      document.getElementById('info-state').innerText = s.state;
+      document.getElementById('info-signals').innerText = `Active Signals: ${s.signals}`;
+      document.getElementById('cycleLog').innerText = s.log;
+
+      // Inputs
+      document.getElementById('txt-row0').innerText = `A[0][k]: ${s.row0}`;
+      document.getElementById('txt-row1').innerText = `A[1][k]: ${s.row1}`;
+      document.getElementById('txt-skew-reg').innerText = `DFF: ${s.skew}`;
+
+      // PEs
+      updatePE('pe00', s.pe00);
+      updatePE('pe01', s.pe01);
+      updatePE('pe10', s.pe10);
+      updatePE('pe11', s.pe11);
+
+      // Outputs
+      document.getElementById('out0-int8').innerText = `Out0: ${s.out0}`;
+      document.getElementById('out1-int8').innerText = `Out1: ${s.out1}`;
+
+      // Highlight wires if active
+      document.getElementById('wire-a00-01').setAttribute('stroke', s.pe00.act ? '#38bdf8' : '#334155');
+      document.getElementById('wire-a10-11').setAttribute('stroke', s.pe10.act ? '#38bdf8' : '#334155');
+      document.getElementById('wire-acc00-10').setAttribute('stroke', s.pe00.act ? '#34d399' : '#334155');
+      document.getElementById('wire-acc01-11').setAttribute('stroke', s.pe01.act ? '#34d399' : '#334155');
+    }
+
+    function updatePE(id, data) {
+      document.getElementById(`${id}-ain`).innerText = data.a;
+      document.getElementById(`${id}-acc`).innerText = data.acc;
+      const box = document.getElementById(`box-${id}`);
+      if (data.act) { box.classList.add('active'); } else { box.classList.remove('active'); }
+    }
+
+    function nextCycle() {
+      if (currentCycle < simSteps.length - 1) {
+        currentCycle++;
+        renderSimulation();
+      } else {
+        pausePlay();
+      }
+    }
+    function prevCycle() {
+      if (currentCycle > 0) {
+        currentCycle--;
+        renderSimulation();
+      }
+    }
+    function resetCycle() {
+      pausePlay();
+      currentCycle = 0;
+      renderSimulation();
+    }
+    function togglePlay() {
+      if (timer) { pausePlay(); } else { startPlay(); }
+    }
+    function startPlay() {
+      document.getElementById('playBtn').innerText = '⏸ Pause';
+      timer = setInterval(() => {
+        if (currentCycle < simSteps.length - 1) {
+          nextCycle();
+        } else {
+          pausePlay();
+        }
+      }, 1400);
+    }
+    function pausePlay() {
+      if (timer) { clearInterval(timer); timer = null; }
+      document.getElementById('playBtn').innerText = '▶ Play Simulation';
+    }
+
+    // =========================================================================
+    // EVOLUTION CONTENT DATA
+    // =========================================================================
+    const evoData = [
+      {
+        phase: "Phase 1: Arithmetic MAC Core",
+        dffs: "Single Register Slice",
+        what: "Designed a 1-cycle INT8 Multiplier-Accumulator (<code>mac_int8.v</code>). Bit-growth handled via 16-bit signed products accumulating into a 32-bit guard register.",
+        why: "Verified basic numerical boundaries before spatial distribution: [-128, 127] signed integer multiplication.",
+        status: "Verified in testbench (5ns setup margin compliance at 100MHz)."
+      },
+      {
+        phase: "Phase 2: 2×2 Systolic Array Grid",
+        dffs: "196 D-Flip-Flops",
+        what: "Connected 4 weight-stationary PEs. Activations route West to East; partial sums accumulate North to South. Initial design relied on software testbench to manually skew Row 1 inputs.",
+        why: "Proven baseline spatial dataflow with point-to-point local routing (no global bus congestion).",
+        status: "Verified in Yosys synthesis: exactly 196 DFFs (4 PEs × 49 registers)."
+      },
+      {
+        phase: "Phase 3: Zero-Stall Ping-Pong Double Buffering",
+        dffs: "228 D-Flip-Flops (+32 DFFs)",
+        what: "Added 8-bit <code>shadow_weight</code> register to each PE alongside the existing <code>active_weight</code> register. Strobe <code>swap_weights</code> flips banks in 1 cycle.",
+        why: "In single-buffered arrays, compute must halt completely during weight loads. Double-buffering allows Layer N+1 weights to stream into the background while Layer N actively computes.",
+        status: "Verified in simulation: 0 idle bubble cycles across layer boundaries."
+      },
+      {
+        phase: "Phase 4: Hardware Wavefront Skew Buffers",
+        dffs: "237 D-Flip-Flops (+9 DFFs)",
+        what: "Integrated an 8-bit DFF delay register (<code>a_row1_skewed</code>) and valid pipeline flag directly onto Row 1 on the array's West boundary.",
+        why: "External memory controllers should not swizzle or pad matrices. Row 0 routes immediately; Row 1 is delayed by 1 clock cycle in silicon.",
+        status: "Verified in Yosys synthesis: exactly 237 DFFs (228 + 9)."
+      },
+      {
+        phase: "Phase 5: Autonomous Hardware FSM Controller",
+        dffs: "245 D-Flip-Flops (+8 DFFs)",
+        what: "Added a synthesizable 6-state sequential Finite State Machine (<code>systolic_controller.v</code>). Internal counters autonomously sequence load, swap, stream, and drain.",
+        why: "Eliminates external CPU micro-management. Host pulses <code>start</code> once, and the hardware controller executes the matrix multiplication to completion.",
+        status: "Verified in GTKWave: clean 1-cycle interrupt pulse on <code>done</code>."
+      },
+      {
+        phase: "Phase 6: Pipelined Re-Quantization & ReLU Engine",
+        dffs: "263 D-Flip-Flops (+18 DFFs)",
+        what: "Integrated post-processing ALU (<code>requant_unit.v</code>): ReLU (clamps negatives to 0), arithmetic right shift (>>> 1), and saturating clamp to signed INT8.",
+        why: "Raw 32-bit accumulators cannot loop into subsequent network layers without scaling. Hardware re-quantization emits ready-to-stream INT8 tensors.",
+        status: "Synthesized in Yosys: exactly 263 DFFs and 3,627 standard cells (0 inferred latches)."
+      }
+    ];
+
+    function setEvo(idx) {
+      document.querySelectorAll('.evo-node').forEach((el, i) => {
+        el.classList.toggle('active', i === idx - 1);
+      });
+      const d = evoData[idx - 1];
+      document.getElementById('evo-card').innerHTML = `
+        <div style="font-size:16px; font-weight:700; color:var(--cyan);">${d.phase}</div>
+        <div style="font-family:var(--mono); font-size:13px; color:var(--violet); margin:4px 0 12px;">Synthesis Result: ${d.dffs}</div>
+        <div style="font-size:13px; color:#cbd5e1; margin-bottom:8px;"><strong>What was built:</strong> ${d.what}</div>
+        <div style="font-size:13px; color:#cbd5e1; margin-bottom:8px;"><strong>RTL Motivation:</strong> ${d.why}</div>
+        <div style="font-size:13px; color:var(--emerald);"><strong>Verification Status:</strong> ${d.status}</div>
+      `;
+    }
+
+    // =========================================================================
+    // FSM DETAIL INSPECTOR
+    // =========================================================================
+    const fsmData = {
+      'S_IDLE': {
+        code: "3'b000",
+        desc: "Processor tile is idle awaiting host transaction. Signal <code>busy = 0</code>.",
+        trans: "Transitions to <code>S_LOAD_W</code> when host asserts <code>start = 1</code>."
+      },
+      'S_LOAD_W': {
+        code: "3'b001",
+        desc: "Asserts <code>load_weight = 1</code>. Shadow registers capture incoming weight matrix bus in background.",
+        trans: "Unconditional transition to <code>S_SWAP_W</code> after 1 clock cycle."
+      },
+      'S_SWAP_W': {
+        code: "3'b010",
+        desc: "Asserts <code>swap_weights = 1</code>. 1-cycle strobe transfers shadow weights into active compute registers feeding multiplier.",
+        trans: "Unconditional transition to <code>S_STREAM</code> on next rising clock edge."
+      },
+      'S_STREAM': {
+        code: "3'b011",
+        desc: "Asserts <code>matrix_valid_in = 1</code>. Increments <code>stream_idx</code> counter across 2 cycles for a 2×2 matrix.",
+        trans: "Transitions to <code>S_DRAIN</code> when <code>stream_idx == 1</code>."
+      },
+      'S_DRAIN': {
+        code: "3'b100",
+        desc: "De-asserts <code>matrix_valid_in = 0</code>. Increments <code>drain_cnt</code> counter across 4 cycles to allow diagonal wavefront to flush.",
+        trans: "Transitions to <code>S_DONE</code> when <code>drain_cnt == 3</code>."
+      },
+      'S_DONE': {
+        code: "3'b101",
+        desc: "Matrix outputs valid. Controller fires a 1-clock-cycle completion interrupt pulse on <code>done = 1</code> and de-asserts <code>busy = 0</code>.",
+        trans: "Unconditional return to <code>S_IDLE</code>."
+      }
+    };
+
+    function inspectFSM(stateName) {
+      document.querySelectorAll('.fsm-state-card').forEach(el => {
+        el.classList.toggle('active', el.querySelector('.fsm-name').innerText === stateName);
+      });
+      const d = fsmData[stateName];
+      document.getElementById('fsm-detail').innerHTML = `
+        <div style="font-weight:700; color:var(--cyan); font-size:14px;">${stateName} (Encoding: ${d.code})</div>
+        <div style="margin:6px 0; color:#cbd5e1;">${d.desc}</div>
+        <div style="color:var(--muted); font-size:12px;"><strong>State Exit Condition:</strong> ${d.trans}</div>
+      `;
+    }
+
+    // =========================================================================
+    // DFF INTERACTIVE DEMO
+    // =========================================================================
+    let dVal = 1;
+    let clkVal = 0;
+    let qVal = 0;
+
+    function toggleDInput() {
+      dVal = dVal === 1 ? 0 : 1;
+      document.getElementById('dff-d-val').innerText = dVal;
+    }
+    function toggleClock() {
+      clkVal = clkVal === 0 ? 1 : 0;
+      document.getElementById('clk-state').innerText = clkVal;
+      if (clkVal === 1) { // Rising edge!
+        qVal = dVal;
+        document.getElementById('dff-q-val').innerText = qVal;
+      }
+    }
+
+    // =========================================================================
+    // DOUBLE BUFFER DEMO
+    // =========================================================================
+    let shadowWeights = ["--", "--", "--", "--"];
+    let activeWeights = ["2", "3", "4", "5"];
+
+    function demoLoadShadow() {
+      shadowWeights = ["1", "-1", "2", "1"];
+      const cells = document.querySelectorAll('#demo-shadow-mat .matrix-cell');
+      shadowWeights.forEach((w, i) => {
+        cells[i].innerText = w;
+        cells[i].style.color = '#a78bfa';
+      });
+      document.getElementById('demo-db-status').innerText = "Status: Layer 2 weights preloaded into SHADOW bank while Layer 1 computes!";
+    }
+
+    function demoSwapBanks() {
+      if (shadowWeights[0] === "--") {
+        alert("Please load weights into the shadow bank first!");
+        return;
+      }
+      activeWeights = [...shadowWeights];
+      const activeCells = document.querySelectorAll('#demo-active-mat .matrix-cell');
+      activeWeights.forEach((w, i) => {
+        activeCells[i].innerText = w;
+        activeCells[i].style.color = '#34d399';
+      });
+      document.getElementById('demo-db-status').innerText = "Status: 1-Cycle Swap Complete! Layer 2 is now active in compute registers with zero pipeline stalls.";
+    }
+
+    // Initialize View
+    renderSimulation();
+    setEvo(1);
+    inspectFSM('S_IDLE');
+  </script>
+</body>
+</html>

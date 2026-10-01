@@ -1,0 +1,574 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini-NPU vs. Naive CPU Hardware Execution Laboratory</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel: #111827;
+      --border: #1f293d;
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.2);
+      --emerald: #34d399;
+      --emerald-glow: rgba(52, 211, 153, 0.2);
+      --rose: #fb7185;
+      --amber: #fbbf24;
+      --violet: #a78bfa;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .header-bar {
+      max-width: 1400px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-bar h1 { font-size: 22px; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .header-bar h1 span { font-size: 13px; font-family: var(--mono); color: var(--cyan); background: rgba(56, 189, 248, 0.1); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    /* Top Action Button Ribbon */
+    .action-ribbon {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #334155; border-color: var(--cyan); }
+    .btn.cpu-btn { background: #881337; border-color: var(--rose); }
+    .btn.cpu-btn:hover { background: #9f1239; box-shadow: 0 0 12px rgba(251, 113, 133, 0.3); }
+    .btn.npu-btn { background: #064e3b; border-color: var(--emerald); }
+    .btn.npu-btn:hover { background: #065f46; box-shadow: 0 0 12px rgba(52, 211, 153, 0.3); }
+    .btn.compare-btn { background: #0369a1; border-color: var(--cyan); }
+    .btn.compare-btn:hover { background: #0284c7; box-shadow: 0 0 12px var(--cyan-glow); }
+    .btn.deepdive-btn { background: #581c87; border-color: var(--violet); margin-left: auto; }
+    .btn.deepdive-btn:hover { background: #6b21a8; box-shadow: 0 0 12px rgba(167, 139, 250, 0.3); }
+
+    /* Problem Workload Selector */
+    .workload-selector {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+    }
+    .workload-selector select {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* Dual Execution Columns */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 1000px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      position: relative;
+    }
+    .panel h2 { font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    
+    .status-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .badge-idle { background: #1e293b; color: var(--muted); border: 1px solid #334155; }
+    .badge-running { background: rgba(251, 191, 36, 0.2); color: var(--amber); border: 1px solid var(--amber); }
+    .badge-complete { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid var(--emerald); }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 16px 0; }
+    .stat-card { background: #0b1120; border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+    .stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .stat-card .val { font-size: 18px; font-weight: 700; font-family: var(--mono); margin-top: 4px; }
+
+    .terminal-trace {
+      background: #080c14;
+      border: 1px solid #1a2234;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      height: 280px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .terminal-trace .line { margin-bottom: 4px; border-bottom: 1px solid #0f172a; padding-bottom: 2px; }
+
+    /* Comparison Section */
+    .compare-section {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--cyan);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .compare-section.active { display: block; animation: fadeIn 0.3s ease-in; }
+
+    table.compare-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
+    table.compare-table th, table.compare-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    table.compare-table th { background: #0f172a; color: var(--muted); }
+    table.compare-table td.code-cell { font-family: var(--mono); font-weight: 700; }
+
+    /* Modal for Hardware Deep Dive */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-content {
+      background: #0f172a;
+      border: 1px solid var(--violet);
+      border-radius: 12px;
+      max-width: 1000px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 0 30px rgba(167, 139, 250, 0.25);
+    }
+    .modal-content h2 { font-size: 20px; color: var(--violet); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .close-btn { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+    .close-btn:hover { color: #fff; }
+
+    .code-block {
+      background: #080c14;
+      border: 1px solid #1e293b;
+      padding: 14px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--cyan);
+      margin: 10px 0 16px;
+      overflow-x: auto;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <h1>Mini-NPU Execution Laboratory <span>Verilog RTL vs. x86 CPU</span></h1>
+    <div style="font-size:12px; color:var(--muted); font-family:var(--mono);">Synthesized Footprint: 263 DFFs | 3,627 Logic Primitives</div>
+  </div>
+
+  <div class="container">
+
+    <!-- Action Ribbon -->
+    <div class="action-ribbon">
+      <button class="btn cpu-btn" onclick="executeNaiveCPU()">▶ 1. Execute Naive Laptop CPU</button>
+      <button class="btn npu-btn" onclick="executeMiniNPU()">⚡ 2. Execute Custom Mini-NPU</button>
+      <button class="btn compare-btn" onclick="toggleComparison()">⚖ 3. Compare Results & Telemetry</button>
+      <button class="btn deepdive-btn" onclick="openDeepDive()">🔬 4. How Hardware Was Coded</button>
+    </div>
+
+    <!-- Workload Selector -->
+    <div class="workload-selector">
+      <span style="font-weight:700; font-size:13px; color:#fff;">Select Complex Hardware Task:</span>
+      <select id="workloadSelect" onchange="resetRuns()">
+        <option value="deep_mlp">16-Layer Chained Neural Net (1,024 Tiled 2x2 Operations + Requant)</option>
+        <option value="conv_edge">64x64 Image Convolution Patch (Edge Filter + ReLU Clamping)</option>
+        <option value="dense_gemm">Large Dense Matrix GEMM (Tile Swapping & Double-Buffering Stress)</option>
+      </select>
+      <span style="font-size:12px; color:var(--muted); margin-left:auto;">Precision: Signed INT8 [-128, 127] with 32-bit internal Accumulation</span>
+    </div>
+
+    <!-- Dual Execution Panels -->
+    <div class="grid-2">
+      
+      <!-- Naive CPU Panel -->
+      <div class="panel" style="border-top: 3px solid var(--rose);">
+        <h2>
+          <span>🖥️ Naive Software Execution (Intel x86 CPU Model)</span>
+          <span class="status-badge badge-idle" id="cpu-status">Idle</span>
+        </h2>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="label">Instructions / μOps</div>
+            <div class="val" id="cpu-stat-ops" style="color:var(--rose);">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">L1 Stack Spills</div>
+            <div class="val" id="cpu-stat-spills">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Cache Load Stalls</div>
+            <div class="val" id="cpu-stat-stalls">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Branch Predictions</div>
+            <div class="val" id="cpu-stat-branches">--</div>
+          </div>
+        </div>
+
+        <div class="terminal-trace" id="cpu-terminal">
+          <div class="line" style="color:var(--muted);">Ready to simulate sequential x86 instruction execution. Press "Execute Naive Laptop CPU".</div>
+        </div>
+      </div>
+
+      <!-- Custom NPU Panel -->
+      <div class="panel" style="border-top: 3px solid var(--emerald);">
+        <h2>
+          <span>⚡ Mini-NPU Core Execution (Spatial Systolic RTL)</span>
+          <span class="status-badge badge-idle" id="npu-status">Idle</span>
+        </h2>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="label">Clock Cycles</div>
+            <div class="val" id="npu-stat-cycles" style="color:var(--emerald);">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Instruction Decodes</div>
+            <div class="val" id="npu-stat-instr" style="color:var(--emerald);">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Shadow Bank Swaps</div>
+            <div class="val" id="npu-stat-swaps">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Local Wire Transfers</div>
+            <div class="val" id="npu-stat-wires">--</div>
+          </div>
+        </div>
+
+        <div class="terminal-trace" id="npu-terminal">
+          <div class="line" style="color:var(--muted);">Ready to simulate cycle-accurate Verilog RTL datapath. Press "Execute Custom Mini-NPU".</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Comparison View (Appears on click) -->
+    <div class="compare-section" id="compareView">
+      <h2 style="font-size:18px; color:#fff; margin-bottom:10px;">⚖ Head-to-Head Architectural Audit: What Was Done Better?</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+        Quantitative delta comparing instruction-driven Von Neumann software against dedicated domain-specific systolic RTL:
+      </p>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Performance & Architectural Metric</th>
+            <th>Naive Laptop CPU Execution</th>
+            <th>Custom Mini-NPU Hardware Core</th>
+            <th>Hardware Design Advantage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Instruction & Decode Overhead</strong></td>
+            <td class="code-cell" style="color:var(--rose);" id="cmp-cpu-instr">--</td>
+            <td class="code-cell" style="color:var(--emerald);">0 Instructions (Wire Flow)</td>
+            <td>Zero instruction cache misses, micro-op decoders, or register renaming stalls.</td>
+          </tr>
+          <tr>
+            <td><strong>Memory Bus & Cache Pollution</strong></td>
+            <td class="code-cell" style="color:var(--rose);" id="cmp-cpu-spills">--</td>
+            <td class="code-cell" style="color:var(--emerald);">0 Stack Spills (Local Wires)</td>
+            <td>Intermediate partial sums accumulate North-to-South on dedicated silicon nets.</td>
+          </tr>
+          <tr>
+            <td><strong>Weight Preparation Latency</strong></td>
+            <td class="code-cell" style="color:var(--rose);" id="cmp-cpu-stalls">--</td>
+            <td class="code-cell" style="color:var(--emerald);">0 Stalls (Ping-Pong Swap)</td>
+            <td>Layer N+1 preloads into shadow registers in background; 1-cycle swap strobe.</td>
+          </tr>
+          <tr>
+            <td><strong>Diagonal Wavefront Skewing</strong></td>
+            <td class="code-cell" style="color:var(--rose);">Software Loops / Transpose</td>
+            <td class="code-cell" style="color:var(--emerald);">8-bit DFF Shift Register</td>
+            <td>Row 1 delayed automatically by 1 cycle on clock edge in hardware.</td>
+          </tr>
+          <tr>
+            <td><strong>ReLU & INT8 Re-quantization</strong></td>
+            <td class="code-cell" style="color:var(--rose);">Branching (CMP+JLE) + SAR</td>
+            <td class="code-cell" style="color:var(--emerald);">In-Pipeline Combinational ALU</td>
+            <td>Non-linear activation and fixed-point shift execute in-flight within 1 clock cycle.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Modal: How Hardware Was Coded & Optimized -->
+  <div class="modal-backdrop" id="deepDiveModal">
+    <div class="modal-content">
+      <h2>
+        <span>🔬 How the Hardware Was Coded & Silicon Behavior Manipulated</span>
+        <button class="close-btn" onclick="closeDeepDive()">✕</button>
+      </h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+        Unlike software code that simply instructs existing execution units, our synthesizable Verilog code physically restructured how logic gates and registers interact:
+      </p>
+
+      <h3 style="font-size:14px; color:var(--cyan); margin-top:14px;">1. Decoupled Ping-Pong Weight Storage (`pe_double_buffered.v`)</h3>
+      <p style="font-size:12px; color:#cbd5e1;">
+        In ordinary software, changing weights halts arithmetic execution while data is pulled from memory. We manipulated hardware by wiring two distinct physical 8-bit registers per PE:
+      </p>
+      <div class="code-block">
+// Background Shadow Register (Bank 1) captures upcoming weights without stopping math
+if (load_weight) shadow_weight &lt;= weight_in;
+
+// 1-Cycle Strobe flips shadow weights into active compute registers (Bank 0)
+if (swap_weights) active_weight &lt;= shadow_weight;
+
+// Multiplier draws strictly from active register
+acc_out &lt;= acc_in + (a_in * active_weight);
+      </div>
+
+      <h3 style="font-size:14px; color:var(--cyan); margin-top:14px;">2. Silicon-Enforced Wavefront Skewing (`systolic_array_2x2_skewed.v`)</h3>
+      <p style="font-size:12px; color:#cbd5e1;">
+        Systolic matrix multiplication requires row inputs to arrive staggered by 1 cycle. Instead of wasting CPU instructions to pad matrices in RAM, we built an 8-bit D-Flip-Flop delay buffer directly onto Row 1:
+      </p>
+      <div class="code-block">
+assign a_row0_skewed = row0_data_in; // Row 0 routes immediately (0 delay)
+
+always @(posedge clk) begin          // Row 1 latches into physical DFF (1-cycle delay)
+    a_row1_skewed &lt;= row1_data_in;
+end
+      </div>
+
+      <h3 style="font-size:14px; color:var(--cyan); margin-top:14px;">3. Autonomous 6-State Hardware Controller (`systolic_controller.v`)</h3>
+      <p style="font-size:12px; color:#cbd5e1;">
+        Rather than burning CPU cycles to sequence matrix loops, a dedicated Finite State Machine acts as an autonomous autopilot using only 8 flip-flops:
+      </p>
+      <div class="code-block">
+// Autonomous state transitions: IDLE -&gt; LOAD_W -&gt; SWAP_W -&gt; STREAM -&gt; DRAIN -&gt; DONE
+case (state)
+    S_IDLE:   if (start) next_state = S_LOAD_W;
+    S_LOAD_W: next_state = S_SWAP_W;
+    S_SWAP_W: next_state = S_STREAM;
+    S_STREAM: if (stream_idx == 2'd1) next_state = S_DRAIN;
+    S_DRAIN:  if (drain_cnt == 3'd3)  next_state = S_DONE;
+    S_DONE:   next_state = S_IDLE; // Emits 1-cycle 'done' interrupt pulse
+endcase
+      </div>
+
+      <h3 style="font-size:14px; color:var(--cyan); margin-top:14px;">4. In-Pipeline Combinational Re-Quantization (`requant_unit.v`)</h3>
+      <p style="font-size:12px; color:#cbd5e1;">
+        Eliminated branching instructions (`CMP`, `JLE`) for ReLU and fixed-point scaling by evaluating non-linear clamping in pure combinational CMOS logic before latching:
+      </p>
+      <div class="code-block">
+assign relu_val   = (acc_in &gt; 32'sd0) ? acc_in : 32'sd0; // Pure wire multiplexer
+assign scaled_val = relu_val &gt;&gt;&gt; SHIFT_BITS;             // Arithmetic shift right
+
+// Synchronous saturating clamp to signed INT8 [0, 127]
+if (scaled_val &gt; 32'sd127) data_out &lt;= 8'sd127;
+else                       data_out &lt;= scaled_val[7:0];
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let cpuDone = false;
+    let npuDone = false;
+
+    const workloads = {
+      deep_mlp: {
+        name: "16-Layer Chained Neural Net",
+        tiles: 1024,
+        layers: 16,
+        cpu_ops: 58368,
+        cpu_spills: 8192,
+        cpu_stalls: 192,
+        cpu_branches: 4096,
+        npu_cycles: 2068,
+        npu_swaps: 16,
+        npu_wires: 8192
+      },
+      conv_edge: {
+        name: "64x64 Conv Filter",
+        tiles: 256,
+        layers: 4,
+        cpu_ops: 14592,
+        cpu_spills: 2048,
+        cpu_stalls: 48,
+        cpu_branches: 1024,
+        npu_cycles: 520,
+        npu_swaps: 4,
+        npu_wires: 2048
+      },
+      dense_gemm: {
+        name: "Large Dense Matrix GEMM",
+        tiles: 512,
+        layers: 8,
+        cpu_ops: 29184,
+        cpu_spills: 4096,
+        cpu_stalls: 96,
+        cpu_branches: 2048,
+        npu_cycles: 1036,
+        npu_swaps: 8,
+        npu_wires: 4096
+      }
+    };
+
+    function resetRuns() {
+      cpuDone = false;
+      npuDone = false;
+      document.getElementById('cpu-status').className = 'status-badge badge-idle';
+      document.getElementById('cpu-status').innerText = 'Idle';
+      document.getElementById('npu-status').className = 'status-badge badge-idle';
+      document.getElementById('npu-status').innerText = 'Idle';
+      
+      document.getElementById('cpu-stat-ops').innerText = '--';
+      document.getElementById('cpu-stat-spills').innerText = '--';
+      document.getElementById('cpu-stat-stalls').innerText = '--';
+      document.getElementById('cpu-stat-branches').innerText = '--';
+
+      document.getElementById('npu-stat-cycles').innerText = '--';
+      document.getElementById('npu-stat-swaps').innerText = '--';
+      document.getElementById('npu-stat-wires').innerText = '--';
+
+      document.getElementById('cpu-terminal').innerHTML = '<div class="line" style="color:var(--muted);">Ready to simulate.</div>';
+      document.getElementById('npu-terminal').innerHTML = '<div class="line" style="color:var(--muted);">Ready to simulate.</div>';
+      document.getElementById('compareView').classList.remove('active');
+    }
+
+    function executeNaiveCPU() {
+      const wk = workloads[document.getElementById('workloadSelect').value];
+      const term = document.getElementById('cpu-terminal');
+      const badge = document.getElementById('cpu-status');
+      
+      badge.className = 'status-badge badge-running';
+      badge.innerText = 'Running...';
+      term.innerHTML = '<div class="line" style="color:var(--rose);">[BOOT] Dispatching x86 sequential execution loop...</div>';
+
+      let step = 0;
+      const interval = setInterval(() => {
+        step++;
+        if (step === 1) {
+          term.innerHTML += `<div class="line">[FETCH] Decoding loop pointers for ${wk.layers} cascaded network layers...</div>`;
+        } else if (step === 2) {
+          term.innerHTML += `<div class="line" style="color:var(--amber);">[STALL] Weight load cache miss: CPU stalled waiting for memory lines (${wk.cpu_stalls} cycles)...</div>`;
+        } else if (step === 3) {
+          term.innerHTML += `<div class="line">[EXEC] IMUL / ADD vector loop: Spilling intermediate accumulators to L1 stack...</div>`;
+        } else if (step === 4) {
+          term.innerHTML += `<div class="line">[BRANCH] Evaluating conditional ReLU jumps (CMP + JLE) and SAR fixed-point shifts...</div>`;
+        } else if (step === 5) {
+          term.innerHTML += `<div class="line" style="color:var(--rose);">[RETIRE] Finished ${wk.tiles} GEMM tiles. Total instruction micro-ops retired: ${wk.cpu_ops.toLocaleString()}.</div>`;
+          clearInterval(interval);
+          badge.className = 'status-badge badge-complete';
+          badge.innerText = 'Complete';
+          document.getElementById('cpu-stat-ops').innerText = wk.cpu_ops.toLocaleString();
+          document.getElementById('cpu-stat-spills').innerText = wk.cpu_spills.toLocaleString();
+          document.getElementById('cpu-stat-stalls').innerText = wk.cpu_stalls.toLocaleString() + ' cycles';
+          document.getElementById('cpu-stat-branches').innerText = wk.cpu_branches.toLocaleString();
+          cpuDone = true;
+        }
+        term.scrollTop = term.scrollHeight;
+      }, 250);
+    }
+
+    function executeMiniNPU() {
+      const wk = workloads[document.getElementById('workloadSelect').value];
+      const term = document.getElementById('npu-terminal');
+      const badge = document.getElementById('npu-status');
+
+      badge.className = 'status-badge badge-running';
+      badge.innerText = 'Running...';
+      term.innerHTML = '<div class="line" style="color:var(--emerald);">[RESET] Synchronous rst_n asserted. FSM in S_IDLE. 263 DFFs cleared.</div>';
+
+      let step = 0;
+      const interval = setInterval(() => {
+        step++;
+        if (step === 1) {
+          term.innerHTML += `<div class="line">[FSM] Host pulsed 'start'. Autonomous controller entered S_LOAD_W -&gt; S_SWAP_W.</div>`;
+        } else if (step === 2) {
+          term.innerHTML += `<div class="line" style="color:var(--cyan);">[SKEW] Hardware 8-bit DFF buffer on Row 1 automatically staggered wavefront in silicon.</div>`;
+        } else if (step === 3) {
+          term.innerHTML += `<div class="line" style="color:var(--emerald);">[DOUBLE-BUFFER] ${wk.npu_swaps} zero-stall layer transitions: Layer N+1 preloaded in shadow bank!</div>`;
+        } else if (step === 4) {
+          term.innerHTML += `<div class="line">[ALU] Output streaming through in-pipeline ReLU + arithmetic shift (&gt;&gt;&gt; 1) + INT8 clamp.</div>`;
+        } else if (step === 5) {
+          term.innerHTML += `<div class="line" style="color:var(--emerald);">[DONE] S_DONE interrupt fired. Completed in ${wk.npu_cycles.toLocaleString()} silicon clock ticks. ZERO micro-ops!</div>`;
+          clearInterval(interval);
+          badge.className = 'status-badge badge-complete';
+          badge.innerText = 'Complete';
+          document.getElementById('npu-stat-cycles').innerText = wk.npu_cycles.toLocaleString();
+          document.getElementById('npu-stat-swaps').innerText = wk.npu_swaps + ' (Zero Stalls)';
+          document.getElementById('npu-stat-wires').innerText = wk.npu_wires.toLocaleString();
+          npuDone = true;
+        }
+        term.scrollTop = term.scrollHeight;
+      }, 250);
+    }
+
+    function toggleComparison() {
+      if (!cpuDone || !npuDone) {
+        alert("Please click '1. Execute Naive Laptop CPU' and '2. Execute Custom Mini-NPU' first to generate telemetry!");
+        return;
+      }
+      const wk = workloads[document.getElementById('workloadSelect').value];
+      document.getElementById('cmp-cpu-instr').innerText = wk.cpu_ops.toLocaleString() + " μOps";
+      document.getElementById('cmp-cpu-spills').innerText = wk.cpu_spills.toLocaleString() + " Stack Writes";
+      document.getElementById('cmp-cpu-stalls').innerText = wk.cpu_stalls.toLocaleString() + " Stall Cycles";
+      document.getElementById('compareView').classList.add('active');
+      document.getElementById('compareView').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openDeepDive() { document.getElementById('deepDiveModal').classList.add('active'); }
+    function closeDeepDive() { document.getElementById('deepDiveModal').classList.remove('active'); }
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+read_verilog pe_weight_stationary.v
+read_verilog systolic_array_2x2.v
+hierarchy -check -top systolic_array_2x2
+proc; opt
+
+# Dump graph representations
+show -format dot -prefix systolic_2x2_block systolic_array_2x2
+show -format dot -prefix pe_micro_arch pe_weight_stationary

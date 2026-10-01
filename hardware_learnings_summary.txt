@@ -1,0 +1,104 @@
+================================================================================
+          DIGITAL HARDWARE DESIGN & ACCELERATOR ARCHITECTURE LAB
+                       Comprehensive Technical Summary
+================================================================================
+
+1. HETEROGENEOUS ACCELERATION & TELEMETRY GROUND TRUTH
+--------------------------------------------------------------------------------
+* Host Platform: Intel Core Ultra 5 225H (14 cores/14 threads, 60W PL1 / 80W PL2),
+  Intel Arc 130T integrated GPU, and Intel AI Boost NPU (13 TOPS).
+* CPU Bottlenecks: Sustained multithreaded AI workloads pushed package power to 
+  67.5W-69.8W and core temperatures to 104?C-105?C, triggering active PL1/PL2 and 
+  IA_PROCHOT thermal throttling flags.
+* NPU Specialization: The dedicated NPU maintained an invariant 1566.0 MHz clock 
+  with zero thermal throttling and flat, minimal package power draw.
+* Quantization Impact: INT8 quantization halved memory bus pressure (model footprint 
+  reduced by ~50%), cutting DRAM bus arbitration stalls and eliminating cache thrashing.
+
+2. SOFTWARE CONTROL VS. TRUE SILICON HARDWARE DESIGN
+--------------------------------------------------------------------------------
+* Low-Level Software (x86-64 / AVX2): Programs fixed, pre-existing execution units 
+  via sequential instruction streams. The CPU front-end continuously incurs the energy 
+  and latency overhead of variable-length instruction fetch, micro-op decoding, 
+  register renaming, and out-of-order scheduling.
+* True Hardware Design (Verilog HDL): Directly models physical CMOS silicon logic. 
+  Modules describe physical wires and logic gates operating concurrently. Execution is 
+  governed entirely by voltage propagation and clock edges (posedge clk), eliminating 
+  dynamic instruction decoders entirely.
+
+3. ARITHMETIC UNIT DESIGN: 1-CYCLE INT8 MAC (mac_int8.v)
+--------------------------------------------------------------------------------
+* Fundamental Equation: Accum = Accum + (A * B)
+* Bit-Width Dynamic Ranges:
+  - Inputs A, B: Signed two's complement 8-bit integers [-128, 127].
+  - Product (A * B): Signed 16-bit integer [-16256, 16384]. Bit growth requires 
+    8 + 8 = 16 bits.
+  - Accumulator Guard Bits: 32-bit signed accumulator allows up to 2^16 = 65,536 
+    consecutive full-scale additions before experiencing overflow.
+* Synchronous Reset & Non-Blocking Logic:
+  - Active-low synchronous reset (!rst_n) clears registers cleanly on posedge clk.
+  - Non-blocking assignments (<=) infer physical D-Flip-Flops rather than latches.
+
+4. DIGITAL TIMING, SETUP MARGINS & VERIFICATION (tb_mac_int8.v)
+--------------------------------------------------------------------------------
+* Delta-Cycle Race Conditions: Driving testbench stimuli with blocking assignments (=) 
+  on the exact same rising clock edge (@(posedge clk)) as register sampling produces 
+  simulator race conditions where inputs change simultaneously with flip-flop capture.
+* Setup & Hold Time Compliance: Testbench stimulus must be driven on the falling edge 
+  (@(negedge clk)) to provide a stable 5ns setup margin (at 100 MHz / 10ns period) 
+  before the design captures data on the rising edge (@(posedge clk)).
+* GTKWave Inspection: Verified that uninitialized registers power up in undefined 
+  states (red "XXX"), clear synchronously on reset, and advance mathematical states 
+  with cycle-accurate 1-cycle pipelined latency.
+
+5. SPATIAL PROCESSING ELEMENT ARCHITECTURE (pe_weight_stationary.v)
+--------------------------------------------------------------------------------
+* The Routing Bottleneck: Connecting large grids of standalone MACs to a central 
+  register file introduces capacitive routing congestion and clock skew.
+* Weight-Stationary PE Design:
+  - Weights are pre-loaded once into an internal register (weight_reg) via load_weight.
+  - Horizontal Dataflow (West -> East): Activations (a_in) are consumed locally 
+    and latched onto a_out to feed the East neighbor on the next clock cycle.
+  - Vertical Dataflow (North -> South): Partial sums (acc_in) arrive from North, 
+    add the local product (a_in * weight_reg), and latch onto acc_out to feed South.
+  - Point-to-Point Local Wires: Data travels exclusively to adjacent silicon cells.
+
+6. 2x2 SYSTOLIC ARRAY ARCHITECTURE (systolic_array_2x2.v)
+--------------------------------------------------------------------------------
+* Grid Topology: 4 PEs arranged in a 2x2 spatial matrix.
+* Matrix Multiplication: C = A x W
+  - Stationary Weights: W = [[2, 3], [4, 5]]
+  - Streaming Matrix:   A = [[1, 2], [3, 4]]
+  - Result:             C = [[10, 13], [22, 29]]
+* Diagonal Wave-Front (Input Skewing):
+  - Row 0 receives A[0][0] at Cycle 1.
+  - Row 1 inputs must be skewed (delayed by 1 cycle) to inject A[0][1] at Cycle 2, 
+    aligning with the partial sum propagating vertically from PE[0][0] to PE[1][0].
+* Hardware Bug Resolution: Floating internal wires default to high-impedance ('z') 
+  or unknown ('x') in silicon, which silently halts downstream logic. Control signals 
+  (valid flags) must be continuously driven across boundaries.
+
+7. LOGIC SYNTHESIS & GATE COUNT METRICS (Yosys Open Synthesis Suite)
+--------------------------------------------------------------------------------
+* Netlist Transformation: High-level Verilog constructs were synthesized into elementary 
+  structural CMOS primitives via the Yosys techmap pass.
+* Physical Resource Utilization (stat pass):
+  - Total Physical Cells: 3,104 standard cells.
+  - Registers (D-Flip-Flops): Exactly 196 Flip-Flops across the array.
+    * 4 PEs x (8-bit weight + 8-bit activation + 32-bit accumulator + 1-bit valid)
+    * 4 x 49 = 196 physical D-Flip-Flops ($_SDFFE_PN0P_ / $_SDFF_PN0_).
+  - Combinational Logic Breakdown:
+    * 1,396 AND gates ($_AND_) -> Computing multiplier bitwise partial products.
+    * 896 XOR gates ($_XOR_)   -> Full-adder sum generation trees.
+    * 584 OR gates ($_OR_)     -> Carry-propagation and multiplexer control networks.
+    * 32 NOT gates ($_NOT_)    -> Signal inversions.
+
+8. THE ARCHITECTURAL CONCLUSION
+--------------------------------------------------------------------------------
+General-purpose CPU execution requires burning tens of watts to fetch, decode, and 
+reorder instructions across deep pipelines before executing vector math[cite: 5]. 
+Your 2x2 systolic array completes cycle-accurate INT8 matrix multiplication using 
+only 196 registers and ~2,900 logic gates without a single instruction fetch. 
+This spatial dataflow architecture is the physical mechanism allowing modern NPUs 
+and Tensor Cores to sustain high throughput with minimal thermal footprint[cite: 5, 7].
+================================================================================

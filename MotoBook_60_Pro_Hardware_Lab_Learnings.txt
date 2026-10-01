@@ -1,0 +1,903 @@
+MOTOBOOK 60 PRO — HARDWARE LAB NOTEBOOK
+==============================================
+
+Purpose
+-------
+This document records what we have actually learned about the laptop's hardware
+through direct measurements, OpenVINO inference tests, SYCL experiments, sustained
+benchmarks, and HWiNFO telemetry.
+
+Important distinction:
+- Specifications describe what the hardware is designed to be.
+- Our benchmarks describe how this particular laptop behaved under our test
+  conditions.
+- Benchmark numbers are workload-specific and are not universal hardware limits.
+
+============================================================
+1. HARDWARE WE IDENTIFIED
+============================================================
+
+Laptop:
+    Motorola MotoBook 60 Pro
+
+Operating system:
+    Windows 11 Home Single Language
+    Build 26200
+
+Processor:
+    Intel Core Ultra 5 225H
+    14 cores
+    14 threads
+    Maximum advertised turbo: up to 4.9 GHz
+
+Integrated GPU:
+    Intel Arc 130T
+
+NPU:
+    Intel AI Boost NPU
+    13 TOPS (specification-level figure)
+
+Memory:
+    16 GB installed
+    Windows reports approximately 15.5 GB usable
+
+Storage:
+    The laptop has two M.2 storage positions.
+    The relevant published configuration indicates support for up to
+    32 GB DDR5 (16 GB + 16 GB), but the exact installed RAM module
+    configuration should be verified before any upgrade.
+
+Other software/hardware tools used:
+    Intel oneAPI Toolkit 2026.1.1
+    OpenVINO 2026.4.0
+    Ollama was installed separately, but it was not the focus of these
+    hardware measurements.
+    HWiNFO64 v8.52-6060 was used for hardware telemetry.
+
+============================================================
+2. THE THREE COMPUTE ENGINES
+============================================================
+
+This laptop effectively gives us three different compute engines:
+
+1. CPU
+   General-purpose processor. Flexible and capable of running almost any
+   normal computation, but high sustained workloads can consume substantial
+   power and generate substantial heat.
+
+2. GPU
+   Intel Arc 130T integrated graphics processor. It is designed to execute
+   many operations in parallel and can be used for GPU compute through
+   Intel oneAPI/SYCL and for OpenVINO inference.
+
+3. NPU
+   Intel AI Boost neural processing unit. It is specialized for supported
+   AI/inference workloads and is intended to perform them with much lower
+   system impact than forcing everything through the CPU.
+
+The important lesson is that "CPU vs GPU vs NPU" is not simply a ranking.
+Each engine has a different purpose, power behavior, and workload profile.
+
+============================================================
+3. CPU SCALING EXPERIMENT
+============================================================
+
+We first tested how the CPU responds when more threads are used.
+
+5 billion square-root operations:
+
+    1 thread:   7.94 s      629.6 Mops/s
+    2 threads:  5.08 s      985.1 Mops/s
+    4 threads:  1.69 s    2961.0 Mops/s
+    8 threads:  1.15 s    4358.0 Mops/s
+   14 threads:  1.00 s    5007.0 Mops/s
+
+Relative to one thread:
+
+    2 threads:   ~1.57x
+    4 threads:   ~4.70x
+    8 threads:   ~6.92x
+   14 threads:   ~7.95x
+
+What this taught us:
+- More threads substantially increase throughput.
+- Scaling is not perfectly linear.
+- Going from 1 to 14 threads does NOT give 14x performance.
+- Real processors have overhead, shared resources, frequency behavior,
+  memory effects, and workload characteristics that prevent perfect scaling.
+
+The CPU therefore behaves like a parallel machine, but not like 14 completely
+independent CPUs.
+
+============================================================
+4. AVX2 EXPERIMENT
+============================================================
+
+We compared scalar computation against AVX2 vectorized computation.
+
+Results:
+
+    Scalar: 2.494 s
+    AVX2:   0.8028 s
+
+Approximate speedup:
+
+    ~3.11x
+
+What this taught us:
+- The CPU can execute multiple numerical operations using vector instructions.
+- AVX2 can significantly increase arithmetic throughput when the workload
+  is suitable for vectorization.
+- Hardware acceleration does not always mean using the GPU; the CPU itself
+  contains specialized execution capabilities.
+
+============================================================
+5. CPU + AVX2 + MULTITHREADING
+============================================================
+
+Combining vectorization with multiple CPU threads produced:
+
+    1 thread:   3.869 B operations/s
+    2 threads:  7.637 B operations/s
+    4 threads: 14.703 B operations/s
+    8 threads: 20.880 B operations/s
+   14 threads: 26.022 B operations/s
+
+The important lesson:
+- Parallelism exists at multiple levels.
+- Threads provide parallel execution across CPU cores.
+- AVX2 provides parallel execution inside CPU instructions.
+- Combining both can produce much higher throughput than simple scalar,
+  single-threaded code.
+
+============================================================
+6. FIRST GPU COMPUTE EXPERIMENT
+============================================================
+
+A large mathematical workload was executed using SYCL.
+
+For N = 100 million:
+
+    GPU: approximately 16.02 ms
+         approximately 6.24 billion elements/s
+
+CPU comparison:
+
+    1 thread: 27.05 ms
+    2 threads: 19.95 ms
+    4 threads: 17.23 ms
+    8 threads: 15.93 ms
+   14 threads: 15.85 ms
+
+Important lesson:
+- On this particular workload, the GPU and fully-threaded CPU were surprisingly
+  close.
+- This does NOT mean the GPU is generally equal to the CPU.
+- Workload structure matters enormously.
+
+============================================================
+7. GPU WORKGROUP EXPERIMENT
+============================================================
+
+We tested different SYCL workgroup sizes.
+
+For N = 100 million:
+
+    Group 32:   13.367 ms     7.481 B elements/s
+    Group 64:   14.598 ms     6.850 B elements/s
+    Group 128:  14.279 ms     7.003 B elements/s
+    Group 256:  15.051 ms     6.644 B elements/s
+
+Group 512 failed because the selected N was not divisible by the required
+workgroup configuration.
+
+Lesson:
+- GPU programs are affected by how work is grouped.
+- There is no universal "larger workgroup = faster" rule.
+- GPU performance depends on the workload, scheduling, memory behavior,
+  occupancy, and implementation details.
+
+============================================================
+8. GPU MEMORY TRANSFER EXPERIMENT
+============================================================
+
+Measured GPU data movement:
+
+    Host -> Device:  ~10.43 GB/s
+    Kernel:          ~49.28 GB/s
+    Device -> Host:  ~10.16 GB/s
+
+Lesson:
+- Computation speed and data-transfer speed are different things.
+- Moving data between CPU memory and GPU memory can become a significant
+  part of a workload.
+- A GPU can have very high internal processing throughput while the path
+  between host and device can be substantially slower.
+- Good GPU programs try to avoid unnecessary transfers.
+
+============================================================
+9. ARITHMETIC INTENSITY
+============================================================
+
+We deliberately increased the amount of computation performed per piece
+of data.
+
+GPU advantage over 14-thread CPU increased dramatically as computation
+became heavier:
+
+    Repeats 1:    ~6.99x
+    Repeats 5:   ~18.75x
+    Repeats 10:  ~47.16x
+    Repeats 25: ~105.1x
+    Repeats 50: ~144.3x
+    Repeats 100:~145.7x
+
+A compute-heavy test with 10 million elements and 50 repeats produced:
+
+    CPU 14T: ~0.4706 s
+    GPU:     ~0.002376 s
+
+This was roughly a 198x GPU advantage for that specific synthetic workload.
+
+Lesson:
+- GPU advantage depends heavily on arithmetic intensity.
+- A GPU becomes increasingly attractive when many independent operations
+  can be performed in parallel on the same data.
+- A benchmark result without knowing its workload can be misleading.
+
+============================================================
+10. HETEROGENEOUS CPU + GPU TEST
+============================================================
+
+We split a compute-heavy workload between CPU and GPU.
+
+For N = 20 million, repeats = 50:
+
+    CPU 100%:  ~0.9475 s
+    CPU 75%:   ~0.6836 s
+    CPU 50%:   ~0.4867 s
+    CPU 25%:   ~0.2591 s
+    GPU 100%:   ~0.02017 s
+
+All configurations produced the same result.
+
+Lesson:
+- CPU and GPU can work on different portions of the same overall problem.
+- For suitable parallel workloads, the GPU can dominate the computation.
+- Heterogeneous computing is useful because the laptop has multiple
+  specialized compute engines.
+
+============================================================
+11. OPENVINO DEVICE DISCOVERY
+============================================================
+
+OpenVINO 2026.4.0 detected:
+
+    CPU
+    GPU
+    NPU
+
+This was an important milestone.
+
+It means our software stack can directly target all three compute engines
+through one inference framework.
+
+Model used:
+
+    MobileNetV2
+    File: mobilenetv2-7.onnx
+    Input: [1, 3, 224, 224]
+
+============================================================
+12. MOBILE NET V2 SINGLE-DEVICE INFERENCE
+============================================================
+
+Representative batch-1 measurements showed:
+
+    CPU: ~500 img/s
+    GPU: ~1400 img/s
+    NPU: ~900 img/s
+
+A clean model sweep gave approximately:
+
+    CPU:
+        499.51 img/s
+        median latency 1.8841 ms
+
+    GPU:
+        1406.11 img/s
+        median latency 0.6843 ms
+
+    NPU:
+        903.87 img/s
+        median latency 1.0900 ms
+
+Relative to CPU:
+
+    GPU: ~2.82x
+    NPU: ~1.81x
+
+GPU vs NPU:
+
+    GPU: ~1.56x NPU throughput
+
+Lesson:
+- For this MobileNetV2 workload, the integrated GPU is the fastest of
+  the three.
+- The NPU is considerably faster than the CPU while being specialized
+  for inference.
+- The GPU and NPU are both useful accelerators even though they are
+  integrated into the same laptop.
+
+============================================================
+13. SECOND MODEL: SQUEEZENET 1.1
+============================================================
+
+Clean single-device measurements:
+
+    CPU: 807.23 img/s
+    GPU: 2189.61 img/s
+    NPU: 1410.66 img/s
+
+Relative:
+
+    GPU/CPU: ~2.71x
+    NPU/CPU: ~1.75x
+    GPU/NPU: ~1.55x
+
+Lesson:
+- Different neural networks produce different absolute throughput.
+- The relative pattern remained similar:
+      GPU fastest
+      NPU second
+      CPU third
+- Therefore, the benchmark is not just measuring a fixed device overhead;
+  the model itself matters.
+
+============================================================
+14. THIRD MODEL: RESNET50
+============================================================
+
+Clean single-device measurements:
+
+    CPU: 107.21 img/s
+    GPU: 633.18 img/s
+    NPU: 356.98 img/s
+
+Relative:
+
+    GPU/CPU: ~5.91x
+    NPU/CPU: ~3.33x
+    GPU/NPU: ~1.77x
+
+This was especially revealing.
+
+Compared with MobileNetV2, ResNet50 made the GPU advantage over the CPU
+much larger.
+
+Lesson:
+- Accelerator benefit depends strongly on model complexity.
+- A heavier neural network can expose much more of the GPU's parallel
+  processing capability.
+- There is no single universal "GPU is X times faster" number.
+
+============================================================
+15. BATCH SIZE SCALING
+============================================================
+
+We tested batch sizes:
+
+    1, 2, 4, 8
+
+for MobileNetV2, SqueezeNet1.1 and ResNet50.
+
+MobileNetV2 GPU:
+
+    Batch 1: 1406.77 img/s
+    Batch 2: 1780.46 img/s
+    Batch 4: 2248.85 img/s
+    Batch 8: 1751.19 img/s
+
+Batch 4 was approximately 1.60x the batch-1 throughput.
+
+SqueezeNet GPU:
+
+    Batch 1: 2000.67
+    Batch 2: 2372.52
+    Batch 4: 4160.34
+    Batch 8: 3036.40
+
+Batch 4 was approximately 2.08x batch-1 throughput.
+
+ResNet50 GPU:
+
+    Batch 1: 639.28
+    Batch 2: 808.69
+    Batch 4: 987.18
+    Batch 8: 936.51
+
+Batch 4 was approximately 1.54x batch-1 throughput.
+
+Lesson:
+- Batching allows the accelerator to process more work efficiently.
+- Batch size is a performance tuning parameter.
+- More batching is not automatically better.
+- In these tests, batch 4 was the best tested GPU batch size for all
+  three models.
+
+Important NPU caveat:
+- Some batch-4 and batch-8 NPU results produced compiler messages about
+  unsupported convolution batch sizes.
+- Therefore those NPU batch results should NOT be treated as clean,
+  universal native NPU scaling results without further investigation.
+
+============================================================
+16. HETEROGENEOUS OPENVINO SCHEDULING
+============================================================
+
+We tested CPU, GPU and two NPU workers together.
+
+A fixed completion-driven scheduler achieved:
+
+    ~2287.54 img/s
+
+Distribution:
+
+    GPU: 4740 jobs (~47.4%)
+    NPU worker 0: 2631
+    NPU worker 1: 2629
+
+The scheduler naturally sent work toward the faster available resources.
+
+A 60-second optimized configuration previously reached:
+
+    ~2382.35 img/s
+
+with:
+
+    CPU: 0 workers
+    GPU: 1 worker
+    NPU: 2 workers
+
+A learned/adaptive scheduler was also tested.
+
+One version became extremely slow because the scheduling logic itself
+introduced massive overhead.
+
+A later predictive version achieved:
+
+    ~2214.11 img/s
+
+which was slower than the fixed scheduler's ~2287.54 img/s baseline.
+
+Lesson:
+- A smarter scheduler is not automatically a faster scheduler.
+- Scheduling overhead matters.
+- For this workload, a simple completion-driven scheduler was more
+  effective than the experimental adaptive scheduler.
+- The GPU + NPU combination was especially productive.
+
+============================================================
+17. IMPORTANT BALANCED vs BEST-PERFORMANCE DISCOVERY
+============================================================
+
+We discovered that Windows power mode substantially affected benchmark
+results.
+
+Example isolated MobileNetV2 measurements:
+
+Balanced mode:
+
+    GPU: ~947 img/s
+    NPU: ~618 img/s
+
+Best Performance:
+
+    GPU: ~1378 img/s
+    NPU: ~833 img/s
+
+Therefore, benchmark conditions must specify the power mode.
+
+Our later sustained experiments were run on AC power with Windows
+Best Performance.
+
+Lesson:
+- Hardware benchmark results are not just about the chip.
+- Operating-system power management can dramatically change behavior.
+- When comparing experiments, power mode must remain controlled.
+
+============================================================
+18. THREE-MINUTE SUSTAINED TEST — FIRST VERSION
+============================================================
+
+Before synchronized HWiNFO logging, we ran 3-minute MobileNetV2 batch-1
+tests.
+
+Approximate averages:
+
+    CPU: 484.05 img/s
+    GPU: 1372.12 img/s
+    NPU: 921.39 img/s
+
+There were occasional dips:
+
+    CPU minimum: ~356 img/s
+    GPU minimum: ~1311 img/s
+    NPU minimum: ~897 img/s
+
+The first version showed no obvious sustained performance collapse.
+
+However, throughput alone could not tell us WHY the occasional dips
+occurred.
+
+That motivated the HWiNFO experiment.
+
+============================================================
+19. HWiNFO TELEMETRY SETUP
+============================================================
+
+HWiNFO64 Shared Memory Support was enabled.
+
+We successfully connected Python to HWiNFO's shared memory interface.
+
+We were able to read:
+
+CPU:
+    Temperature
+    Package power
+    Usage
+    Effective clock
+    Thermal throttling
+    Power-limit flags
+    PL1 / PL2
+    Max turbo limit
+    Thermal event
+    PROCHOT
+    VR thermal status
+
+GPU:
+    Temperature
+    Power
+    Clock
+    Utilization
+    PL1 / PL2 / PL4
+    Thermal limit
+    Power limit
+    Software limit
+    Hardware limit
+
+NPU:
+    Clock
+    Utilization
+    Power limit
+    Voltage limit
+    PL4
+    Thermal limit
+    Utilization limit
+
+This was the key step that allowed us to connect performance to hardware
+behavior rather than looking at throughput alone.
+
+============================================================
+20. SYNCHRONIZED 3-MINUTE CPU TEST
+============================================================
+
+Final synchronized CPU results:
+
+    Average throughput: 466.78 img/s
+    First window:       466.37 img/s
+    Last window:        488.89 img/s
+    Peak:               494.65 img/s
+    Minimum:             432.17 img/s
+    First -> Last:       +4.83%
+
+Observed temperatures:
+
+    approximately 85–104°C during the sustained workload
+
+Observed package power:
+
+    approximately 45–68 W depending on the period
+
+The CPU reached approximately:
+
+    104°C
+
+There were recorded thermal and power-limit events.
+
+Examples included:
+    CPU thermal throttling
+    CPU thermal events
+    CPU PL1
+    CPU PL2
+
+The important observation is that these constraints did NOT cause a
+continuous downward performance trend.
+
+Instead:
+
+    performance fluctuated
+    ↓
+    occasionally dipped
+    ↓
+    recovered again
+
+For example:
+
+    150 s: 432.17 img/s
+    160 s: 461.73 img/s
+    170 s: 488.89 img/s
+
+Therefore:
+
+    "CPU reached thermal/power limits"
+
+is supported by the telemetry.
+
+But:
+
+    "CPU continuously degraded because of thermal throttling"
+
+is NOT supported by this experiment.
+
+The CPU was dynamically managing its operating point rather than simply
+collapsing in performance.
+
+============================================================
+21. SYNCHRONIZED 3-MINUTE GPU TEST
+============================================================
+
+Final synchronized GPU results:
+
+    Average throughput: 1372.68 img/s
+    First window:       1375.92 img/s
+    Last window:        1379.40 img/s
+    Peak:               1396.87 img/s
+    Minimum:             1306.74 img/s
+    First -> Last:        +0.25%
+
+GPU temperature was approximately:
+
+    54–64°C
+
+GPU power was approximately:
+
+    9 W
+
+GPU clock was generally:
+
+    around 2200 MHz
+
+There were:
+
+    NO recorded GPU thermal/power-limit events.
+
+There was a temporary throughput dip around 90 s:
+
+    1306.74 img/s
+
+But the GPU was still around:
+
+    62°C
+    ~9.17 W
+    2200 MHz
+
+and performance subsequently recovered.
+
+Therefore the GPU did NOT show sustained thermal throttling in this test.
+
+This is one of the strongest observations from the entire hardware lab.
+
+============================================================
+22. SYNCHRONIZED 3-MINUTE NPU TEST
+============================================================
+
+Final synchronized NPU results:
+
+    Average throughput: 902.88 img/s
+    First window:       902.02 img/s
+    Last window:        899.59 img/s
+    Peak:               913.34 img/s
+    Minimum:             890.60 img/s
+    First -> Last:       -0.27%
+
+NPU clock:
+
+    approximately 1566 MHz
+
+NPU throughput stayed in a very narrow range.
+
+The surrounding CPU/GPU temperatures were also comparatively low.
+
+There were:
+
+    NO recorded NPU thermal/power-limit events.
+
+The NPU was therefore extremely stable during this sustained MobileNetV2
+test.
+
+============================================================
+23. WHAT WE NOW KNOW ABOUT SUSTAINED BEHAVIOR
+============================================================
+
+CPU:
+
+    High compute capability
+    High power under sustained AI inference
+    Can reach ~104°C
+    Thermal and package-power management becomes active
+    Performance can fluctuate
+    No monotonic collapse during this 3-minute test
+
+GPU:
+
+    Highest MobileNetV2 throughput
+    ~9 W GPU power in this workload
+    ~54–64°C
+    Usually around 2200 MHz
+    No recorded thermal/power limiting
+    Very stable sustained performance
+
+NPU:
+
+    Lower throughput than GPU but much higher than CPU
+    ~900 img/s for this MobileNetV2 test
+    ~1566 MHz
+    Very stable
+    No recorded thermal/power limiting
+    Small performance variation over three minutes
+
+============================================================
+24. THE MOST IMPORTANT HARDWARE LESSONS
+============================================================
+
+1. More cores do not mean perfectly linear scaling.
+
+2. CPU vector instructions such as AVX2 can provide large acceleration.
+
+3. GPUs become especially powerful when the workload has lots of
+   independent parallel arithmetic.
+
+4. GPU performance depends heavily on arithmetic intensity.
+
+5. Moving data can become a bottleneck.
+
+6. GPU workgroup configuration matters.
+
+7. Neural-network performance depends heavily on model architecture.
+
+8. Batch size can dramatically change accelerator throughput.
+
+9. More batching is not always better.
+
+10. The NPU is not simply a "small GPU."
+    It is a specialized inference engine with different behavior.
+
+11. The GPU is currently the fastest tested engine for our MobileNetV2,
+    SqueezeNet and ResNet50 experiments.
+
+12. The NPU consistently provides strong inference throughput with much
+    less thermal disturbance than the CPU.
+
+13. The CPU is the most flexible engine but is also the one that showed
+    the strongest thermal/power constraints under sustained inference.
+
+14. Operating-system power mode can dramatically change benchmark results.
+
+15. A scheduler can distribute work across CPU/GPU/NPU, but scheduler
+    overhead itself can destroy the benefit if the design is poor.
+
+16. Hardware utilization and hardware temperature must be measured
+    together if we want to understand performance behavior.
+
+17. A single benchmark number is not enough to characterize hardware.
+
+18. Sustained performance is different from peak performance.
+
+============================================================
+25. CURRENT PERFORMANCE SNAPSHOT
+============================================================
+
+For MobileNetV2 batch 1 under the synchronized Best-Performance/AC test:
+
+    CPU    ~466.78 img/s
+    GPU   ~1372.68 img/s
+    NPU    ~902.88 img/s
+
+Approximate relative throughput:
+
+    GPU / CPU ≈ 2.94x
+    NPU / CPU ≈ 1.94x
+    GPU / NPU ≈ 1.52x
+
+These ratios are specific to this sustained MobileNetV2 experiment.
+
+They should NOT be treated as universal specifications of the CPU, GPU,
+or NPU.
+
+============================================================
+26. WHAT WE HAVE NOT YET MEASURED
+============================================================
+
+We have not yet built the final synchronized visualization showing:
+
+    time
+       ↓
+    temperature
+       ↓
+    power
+       ↓
+    clock
+       ↓
+    utilization
+       ↓
+    throughput
+
+We also have not yet performed a detailed controlled experiment for:
+
+    - exact CPU frequency behavior during thermal limiting
+    - exact package power versus throughput curve
+    - GPU frequency versus throughput
+    - NPU frequency versus throughput
+    - memory bandwidth under different workloads
+    - system-level power efficiency in images/joule
+    - long-duration behavior beyond three minutes
+    - fan behavior and acoustic output
+    - RAM bandwidth and latency
+    - cache behavior
+    - detailed CPU P-core/E-core behavior
+    - exact iGPU memory allocation behavior
+
+Those are future experiments, not conclusions from the current data.
+
+============================================================
+27. OVERALL UNDERSTANDING
+============================================================
+
+The MotoBook 60 Pro is not one processor doing everything.
+
+It is a heterogeneous computing system:
+
+       ┌───────────────────────────────┐
+       │        Core Ultra 5 225H      │
+       │                               │
+       │   CPU ───── general compute   │
+       │                               │
+       │   Arc 130T ─ parallel GPU     │
+       │                               │
+       │   NPU ───── AI inference      │
+       └───────────────────────────────┘
+
+The experiments demonstrated three different styles of computing:
+
+CPU:
+    flexible + powerful + thermally expensive under sustained load
+
+GPU:
+    massively parallel + highest tested inference throughput + stable
+
+NPU:
+    specialized AI acceleration + low thermal disturbance + very stable
+
+The most important thing we learned is not simply that one device is
+"faster."
+
+We learned that the SAME laptop can behave very differently depending on:
+
+    workload
+    model
+    batch size
+    arithmetic intensity
+    number of CPU threads
+    vectorization
+    data movement
+    power mode
+    thermal state
+    accelerator selection
+    scheduling strategy
+
+That is the foundation of understanding modern heterogeneous hardware.
+
+============================================================
+END OF HARDWARE LAB NOTEBOOK
+============================================================
